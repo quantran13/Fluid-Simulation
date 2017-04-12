@@ -1,25 +1,25 @@
 #include "fluid.h"
 
-FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, float dt)
+FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
     FluidCube *cube = malloc(sizeof(*cube));
-    int N = size;
+    size_t N = (size_t) size;
     
     cube->size = size;
     cube->dt = dt;
     cube->diff = diffusion;
     cube->visc = viscosity;
     
-    cube->s = calloc(N * N * N, sizeof(float));
-    cube->density = calloc(N * N * N, sizeof(float));
+    cube->s = calloc(N * N * N, sizeof(double));
+    cube->density = calloc(N * N * N, sizeof(double));
     
-    cube->Vx = calloc(N * N * N, sizeof(float));
-    cube->Vy = calloc(N * N * N, sizeof(float));
-    cube->Vz = calloc(N * N * N, sizeof(float));
+    cube->Vx = calloc(N * N * N, sizeof(double));
+    cube->Vy = calloc(N * N * N, sizeof(double));
+    cube->Vz = calloc(N * N * N, sizeof(double));
     
-    cube->Vx0 = calloc(N * N * N, sizeof(float));
-    cube->Vy0 = calloc(N * N * N, sizeof(float));
-    cube->Vz0 = calloc(N * N * N, sizeof(float));
+    cube->Vx0 = calloc(N * N * N, sizeof(double));
+    cube->Vy0 = calloc(N * N * N, sizeof(double));
+    cube->Vz0 = calloc(N * N * N, sizeof(double));
     
     return cube;
 }
@@ -41,7 +41,7 @@ void FluidCubeFree(FluidCube *cube)
 }
 
 
-static void set_bnd(int b, float *x, int N)
+static void set_bnd(int b, double *x, int N)
 {
     for(int j = 1; j < N - 1; j++) {
         for(int i = 1; i < N - 1; i++) {
@@ -88,9 +88,9 @@ static void set_bnd(int b, float *x, int N)
                                   + x[IX(N-1, N-1, N-2)]);
 }
 
-static void lin_solve(int b, float *x, float *x0, float a, float c, int iter, int N)
+static void lin_solve(int b, double *x, double *x0, double a, double c, int iter, int N)
 {
-    float cRecip = 1.0 / c;
+    double cRecip = 1.0 / c;
     for (int k = 0; k < iter; k++) {
         for (int m = 1; m < N - 1; m++) {
             for (int j = 1; j < N - 1; j++) {
@@ -111,48 +111,48 @@ static void lin_solve(int b, float *x, float *x0, float a, float c, int iter, in
     }
 }
 
-static void diffuse (int b, float *x, float *x0, float diff, float dt, int iter, int N)
+static void diffuse (int b, double *x, double *x0, double diff, double dt, int iter, int N)
 {
-    float a = dt * diff * (N - 2) * (N - 2);
+    double a = dt * diff * (N - 2) * (N - 2);
     lin_solve(b, x, x0, a, 1 + 6 * a, iter, N);
 }
 
-static void advect(int b, float *d, float *d0,  float *velocX, 
-                   float *velocY, float *velocZ, float dt, int N)
+static void advect(int b, double *d, double *d0,  double *velocX,
+                   double *velocY, double *velocZ, double dt, int N)
 {
-    float i0, i1, j0, j1, k0, k1;
+    double i0, i1, j0, j1, k0, k1;
     
-    float dtx = dt * (N - 2);
-    float dty = dt * (N - 2);
-    float dtz = dt * (N - 2);
+    double dtx = dt * (N - 2);
+    double dty = dt * (N - 2);
+    double dtz = dt * (N - 2);
     
-    float s0, s1, t0, t1, u0, u1;
-    float tmp1, tmp2, tmp3, x, y, z;
+    double s0, s1, t0, t1, u0, u1;
+    double tmp1, tmp2, tmp3, x, y, z;
     
-    float Nfloat = N;
-    float ifloat, jfloat, kfloat;
+    double Ndouble = N;
+    double idouble, jdouble, kdouble;
     int i, j, k;
     
-    for(k = 1, kfloat = 1; k < N - 1; k++, kfloat++) {
-        for(j = 1, jfloat = 1; j < N - 1; j++, jfloat++) { 
-            for(i = 1, ifloat = 1; i < N - 1; i++, ifloat++) {
+    for(k = 1, kdouble = 1; k < N - 1; k++, kdouble++) {
+        for(j = 1, jdouble = 1; j < N - 1; j++, jdouble++) {
+            for(i = 1, idouble = 1; i < N - 1; i++, idouble++) {
                 tmp1 = dtx * velocX[IX(i, j, k)];
                 tmp2 = dty * velocY[IX(i, j, k)];
                 tmp3 = dtz * velocZ[IX(i, j, k)];
-                x    = ifloat - tmp1; 
-                y    = jfloat - tmp2;
-                z    = kfloat - tmp3;
+                x    = idouble - tmp1;
+                y    = jdouble - tmp2;
+                z    = kdouble - tmp3;
                 
                 if(x < 0.5f) x = 0.5f; 
-                if(x > Nfloat + 0.5f) x = Nfloat + 0.5f; 
+                if(x > Ndouble + 0.5f) x = Ndouble + 0.5f;
                 i0 = floorf(x); 
                 i1 = i0 + 1.0f;
                 if(y < 0.5f) y = 0.5f; 
-                if(y > Nfloat + 0.5f) y = Nfloat + 0.5f; 
+                if(y > Ndouble + 0.5f) y = Ndouble + 0.5f;
                 j0 = floorf(y);
                 j1 = j0 + 1.0f; 
                 if(z < 0.5f) z = 0.5f;
-                if(z > Nfloat + 0.5f) z = Nfloat + 0.5f;
+                if(z > Ndouble + 0.5f) z = Ndouble + 0.5f;
                 k0 = floorf(z);
                 k1 = k0 + 1.0f;
                 
@@ -163,12 +163,12 @@ static void advect(int b, float *d, float *d0,  float *velocX,
                 u1 = z - k0;
                 u0 = 1.0f - u1;
                 
-                int i0i = i0;
-                int i1i = i1;
-                int j0i = j0;
-                int j1i = j1;
-                int k0i = k0;
-                int k1i = k1;
+                int i0i = (int) i0;
+                int i1i = (int) i1;
+                int j0i = (int) j0;
+                int j1i = (int) j1;
+                int k0i = (int) k0;
+                int k1i = (int) k1;
                 
                 d[IX(i, j, k)] = 
                 
@@ -186,8 +186,8 @@ static void advect(int b, float *d, float *d0,  float *velocX,
     set_bnd(b, d, N);
 }
 
-static void project(float *velocX, float *velocY, float *velocZ, 
-                    float *p, float *div, int iter, int N)
+static void project(double *velocX, double *velocY, double *velocZ,
+                    double *p, double *div, int iter, int N)
 {
     for (int k = 1; k < N - 1; k++) {
         for (int j = 1; j < N - 1; j++) {
@@ -228,17 +228,17 @@ static void project(float *velocX, float *velocY, float *velocZ,
 void FluidCubeStep(FluidCube *cube)
 {
     int N          = cube->size;
-    float visc     = cube->visc;
-    float diff     = cube->diff;
-    float dt       = cube->dt;
-    float *Vx      = cube->Vx;
-    float *Vy      = cube->Vy;
-    float *Vz      = cube->Vz;
-    float *Vx0     = cube->Vx0;
-    float *Vy0     = cube->Vy0;
-    float *Vz0     = cube->Vz0;
-    float *s       = cube->s;
-    float *density = cube->density;
+    double visc     = cube->visc;
+    double diff     = cube->diff;
+    double dt       = cube->dt;
+    double *Vx      = cube->Vx;
+    double *Vy      = cube->Vy;
+    double *Vz      = cube->Vz;
+    double *Vx0     = cube->Vx0;
+    double *Vy0     = cube->Vy0;
+    double *Vz0     = cube->Vz0;
+    double *s       = cube->s;
+    double *density = cube->density;
     
     diffuse(1, Vx0, Vx, visc, dt, 4, N);
     diffuse(2, Vy0, Vy, visc, dt, 4, N);
@@ -256,14 +256,14 @@ void FluidCubeStep(FluidCube *cube)
     advect(0, density, s, Vx, Vy, Vz, dt, N);
 }
 
-void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, float amount)
+void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, double amount)
 {
     int N = cube->size;
     cube->density[IX(x, y, z)] += amount;
 }
 
 void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z, 
-                          float amountX, float amountY, float amountZ)
+                          double amountX, double amountY, double amountZ)
 {
     int N = cube->size;
     int index = IX(x, y, z);

@@ -8,29 +8,29 @@
 
 struct FluidCube {
     int size;
-    float dt;
-    float diff;
-    float visc;
+    double dt;
+    double diff;
+    double visc;
     
-    float *s;
-    float *density;
+    double *s;
+    double *density;
     
-    float *Vx;
-    float *Vy;
-    float *Vz;
+    double *Vx;
+    double *Vy;
+    double *Vz;
 
-    float *Vx0;
-    float *Vy0;
-    float *Vz0;
+    double *Vx0;
+    double *Vy0;
+    double *Vz0;
 };
 typedef struct FluidCube FluidCube;
 
-FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, float dt);
+FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt);
 void FluidCubeFree(FluidCube *cube);
 void FluidCubeStep(FluidCube *cube);
-void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, float amount);
+void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, double amount);
 void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z, 
-                          float amountX, float amountY, float amountZ);
+                          double amountX, double amountY, double amountZ);
 
 
 #endif
