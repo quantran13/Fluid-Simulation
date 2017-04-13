@@ -199,7 +199,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
                         -velocY[IX(i  , j-1, k  )]
                         +velocZ[IX(i  , j  , k+1)]
                         -velocZ[IX(i  , j  , k-1)]
-                    )/N;
+                    ) / N;
                 p[IX(i, j, k)] = 0;
             }
         }
