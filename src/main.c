@@ -1,8 +1,8 @@
 #include <GL/glut.h>
 #include <stdio.h>
 #include <sys/time.h>
-#include "fluid.h"
-#include "graphic.h"
+#include <fluid.h>
+#include <graphic.h>
 
 double get_time();
 void printUsage(char *program_name);

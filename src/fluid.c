@@ -1,4 +1,4 @@
-#include "fluid.h"
+#include <fluid.h>
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
