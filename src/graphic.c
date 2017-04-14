@@ -22,7 +22,7 @@ void draw_cube(FluidCube *cube)
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             color_t color;
-            double density = cube->density[IX(i, j, 25)];
+            double density = cube->density[IX(i, j, 8)];
             color.r = density;
             color.g = density;
             color.b = density;
@@ -48,26 +48,6 @@ void draw_square(int x, int y, double vsize, double hsize, color_t* color)
     glVertex2d(left_x, down_y);
     glVertex2d(left_x, up_y);
     glEnd();
-
-    /*
-    glColor3f(0, 0, 0);
-    glBegin(GL_LINES);
-    glVertex2d(left_x, up_y);
-    glVertex2d(left_x, down_y);
-    glEnd();
-    glBegin(GL_LINES);
-    glVertex2d(left_x, up_y);
-    glVertex2d(right_x, up_y);
-    glEnd();
-    glBegin(GL_LINES);
-    glVertex2d(right_x, up_y);
-    glVertex2d(right_x, down_y);
-    glEnd();
-    glBegin(GL_LINES);
-    glVertex2d(left_x, down_y);
-    glVertex2d(right_x, down_y);
-    glEnd();
-     */
 
     glutSwapBuffers();
 }
