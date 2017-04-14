@@ -3,7 +3,7 @@ project(fluid_simulation)
 
 set(CMAKE_C_STANDARD 11)
 
-set(SOURCE_FILES src/main.c src/graphic.c src/fluid.c includes/fluid.h includes/graphic.h)
+set(SOURCE_FILES src/main.c src/graphic.c src/fluid.c includes/fluid.h includes/graphic.h src/utility.cpp includes/utility.h)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 
