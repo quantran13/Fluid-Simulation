@@ -2,6 +2,7 @@
 // Created by quan on 4/11/17.
 //
 
+#include <utility.h>
 #include "graphic.h"
 
 void init_render()
@@ -13,23 +14,33 @@ void init_render()
     glutSwapBuffers();
 }
 
-void draw_cube(FluidCube *cube)
+void draw_cube(FluidCube *cube, perf_t *perf_struct)
 {
+    double start_drawing = get_time();
+
     int N = cube->size;
     double vsize = 2.0 / N;
     double hsize = vsize;
+    double start = 0, end = 0;
 
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             color_t color;
-            double density = cube->density[IX(i, j, 8)];
+            double density = cube->density[IX(i, j, 50)];
             color.r = density;
             color.g = density;
             color.b = density;
+
+            start = get_time();
             draw_square(i, j, vsize, hsize, &color);
-            //printf("%d %d: %f\n", i, j, cube->density[IX(i, j, 10)]);
+            end = get_time();
+            perf_struct->timeDrawSquare += end - start;
+            //printf("%d %d: %f\n", i, j, cube->density[IX(i, j, 8)]);
         }
     }
+
+    double end_drawing = get_time();
+    perf_struct->timeDrawing += end_drawing - start_drawing;
 }
 
 void draw_square(int x, int y, double vsize, double hsize, color_t* color)

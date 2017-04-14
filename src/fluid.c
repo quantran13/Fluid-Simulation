@@ -1,4 +1,5 @@
 #include <fluid.h>
+#include <utility.h>
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
@@ -145,15 +146,15 @@ static void advect(int b, double *d, double *d0,  double *velocX,
                 
                 if(x < 0.5f) x = 0.5f; 
                 if(x > Ndouble + 0.5f) x = Ndouble + 0.5f;
-                i0 = floorf(x); 
+                i0 = floor(x);
                 i1 = i0 + 1.0f;
                 if(y < 0.5f) y = 0.5f; 
                 if(y > Ndouble + 0.5f) y = Ndouble + 0.5f;
-                j0 = floorf(y);
+                j0 = floor(y);
                 j1 = j0 + 1.0f; 
                 if(z < 0.5f) z = 0.5f;
                 if(z > Ndouble + 0.5f) z = Ndouble + 0.5f;
-                k0 = floorf(z);
+                k0 = floor(z);
                 k1 = k0 + 1.0f;
                 
                 s1 = x - i0; 
@@ -225,7 +226,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
     set_bnd(3, velocZ, N);
 }
 
-void FluidCubeStep(FluidCube *cube)
+void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
 {
     int N          = cube->size;
     double visc     = cube->visc;
@@ -239,21 +240,62 @@ void FluidCubeStep(FluidCube *cube)
     double *Vz0     = cube->Vz0;
     double *s       = cube->s;
     double *density = cube->density;
-    
+
+    double start = 0, end = 0;
+
+    start = get_time();
     diffuse(1, Vx0, Vx, visc, dt, 4, N);
+    end = get_time();
+    perf_struct->timeDiffuse += end - start;
+
+    start = get_time();
     diffuse(2, Vy0, Vy, visc, dt, 4, N);
+    end = get_time();
+    perf_struct->timeDiffuse += end - start;
+
+    start = get_time();
     diffuse(3, Vz0, Vz, visc, dt, 4, N);
-    
+    end = get_time();
+    perf_struct->timeDiffuse += end - start;
+
+    start = get_time();
     project(Vx0, Vy0, Vz0, Vx, Vy, 4, N);
-    
+    end = get_time();
+    perf_struct->timeProject += end - start;
+
+    start = get_time();
     advect(1, Vx, Vx0, Vx0, Vy0, Vz0, dt, N);
+    end = get_time();
+    perf_struct->timeAdvect += end - start;
+
+    start = get_time();
     advect(2, Vy, Vy0, Vx0, Vy0, Vz0, dt, N);
+    end = get_time();
+    perf_struct->timeAdvect += end - start;
+
+    start = get_time();
     advect(3, Vz, Vz0, Vx0, Vy0, Vz0, dt, N);
-    
+    end = get_time();
+    perf_struct->timeAdvect += end - start;
+
+    start = get_time();
     project(Vx, Vy, Vz, Vx0, Vy0, 4, N);
-    
+    end = get_time();
+    perf_struct->timeProject += end - start;
+
+    start = get_time();
     diffuse(0, s, density, diff, dt, 4, N);
+    end = get_time();
+    perf_struct->timeDiffuse += end - start;
+
+    start = get_time();
     advect(0, density, s, Vx, Vy, Vz, dt, N);
+    end = get_time();
+    perf_struct->timeAdvect += end - start;
+
+    perf_struct->totalDiffuse += 4;
+    perf_struct->totalAdvect += 4;
+    perf_struct->totalProject += 2;
 }
 
 void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, double amount)

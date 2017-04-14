@@ -1,11 +1,11 @@
 #include <fluid.h>
 #include <graphic.h>
 #include <string.h>
-#include <unistd.h>
+#include <getopt.h>
 #include <utility.h>
 
 const int initial_density = 2000;
-const int initial_velocity = 1000;
+const int initial_velocity = 10;
 
 void print_usage(char *program_name);
 FluidCube* get_input_from_file(char *file_name);
@@ -35,17 +35,29 @@ int main(int argc, char **argv)
 
     // Init the cube
     FluidCube* cube = get_input_from_file(file_name);
+    int n = cube->size;
 
     // Start the simulation
+    perf_t perf_struct;
+    perf_struct.timeDrawSquare = 0;
+    perf_struct.timeDrawing = 0;
+    perf_struct.timeDiffuse = 0;
+    perf_struct.timeAdvect = 0;
+    perf_struct.timeProject = 0;
+    perf_struct.totalDiffuse = 0;
+    perf_struct.totalAdvect = 0;
+    perf_struct.totalProject = 0;
+
     double start = get_time();
 
     if (display_graphic)
-       draw_cube(cube);
+        draw_cube(cube, &perf_struct);
     for (int step = 0; step < steps; step++) {
         printf("---------- done step -----------\n");
-        FluidCubeStep(cube);
+        FluidCubeStep(cube, &perf_struct);
+
         if (display_graphic)
-           draw_cube(cube);
+            draw_cube(cube, &perf_struct);
     }
 
     FluidCubeFree(cube);
@@ -54,6 +66,11 @@ int main(int argc, char **argv)
     double elapsed = end - start;
 
     printf("Elapsed time: %fs.\n", elapsed);
+    printf("Average - diffuse: %f\n", perf_struct.timeDiffuse / perf_struct.totalDiffuse);
+    printf("Average - advect : %f\n", perf_struct.timeAdvect / perf_struct.totalAdvect);
+    printf("Average - project: %f\n", perf_struct.timeProject / perf_struct.totalProject);
+    printf("Average - drawing: %f\n", perf_struct.timeDrawing / (steps + 1));
+    printf("Average - draw square: %f\n", perf_struct.timeDrawSquare / (steps + 1));
 
     return 0;
 }
