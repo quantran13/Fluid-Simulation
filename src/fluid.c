@@ -41,7 +41,6 @@ void FluidCubeFree(FluidCube *cube)
     free(cube);
 }
 
-
 static void set_bnd(int b, double *x, int N)
 {
     for(int j = 1; j < N - 1; j++) {
@@ -127,16 +126,16 @@ static void advect(int b, double *d, double *d0,  double *velocX,
     double dty = dt * (N - 2);
     double dtz = dt * (N - 2);
     
-    double s0, s1, t0, t1, u0, u1;
-    double tmp1, tmp2, tmp3, x, y, z;
-    
+
     double Ndouble = N;
     double idouble, jdouble, kdouble;
     int i, j, k;
-    
+
     for(k = 1, kdouble = 1; k < N - 1; k++, kdouble++) {
         for(j = 1, jdouble = 1; j < N - 1; j++, jdouble++) {
             for(i = 1, idouble = 1; i < N - 1; i++, idouble++) {
+                double s0, s1, t0, t1, u0, u1;
+                double tmp1, tmp2, tmp3, x, y, z;
                 tmp1 = dtx * velocX[IX(i, j, k)];
                 tmp2 = dty * velocY[IX(i, j, k)];
                 tmp3 = dtz * velocZ[IX(i, j, k)];
@@ -190,6 +189,7 @@ static void advect(int b, double *d, double *d0,  double *velocX,
 static void project(double *velocX, double *velocY, double *velocZ,
                     double *p, double *div, int iter, int N)
 {
+    double N_recip = 1 / N;
     for (int k = 1; k < N - 1; k++) {
         for (int j = 1; j < N - 1; j++) {
             for (int i = 1; i < N - 1; i++) {
@@ -200,7 +200,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
                         -velocY[IX(i  , j-1, k  )]
                         +velocZ[IX(i  , j  , k+1)]
                         -velocZ[IX(i  , j  , k-1)]
-                    ) / N;
+                    ) * N_recip;
                 p[IX(i, j, k)] = 0;
             }
         }
@@ -208,7 +208,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
     set_bnd(0, div, N); 
     set_bnd(0, p, N);
     lin_solve(0, p, div, 1, 6, iter, N);
-    
+
     for (int k = 1; k < N - 1; k++) {
         for (int j = 1; j < N - 1; j++) {
             for (int i = 1; i < N - 1; i++) {
