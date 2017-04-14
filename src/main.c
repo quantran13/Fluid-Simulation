@@ -1,67 +1,51 @@
-#include <GL/glut.h>
-#include <stdio.h>
-#include <sys/time.h>
 #include <fluid.h>
 #include <graphic.h>
+#include <string.h>
+#include <unistd.h>
+#include <utility.h>
 
-double get_time();
-void printUsage(char *program_name);
+const int initial_density = 2000;
+const int initial_velocity = 1000;
+
+void print_usage(char *program_name);
+FluidCube* get_input_from_file(char *file_name);
+void get_command_line_args(int argc, char **argv, int *steps,
+                           int *display_graphic, char *file_name);
 
 int main(int argc, char **argv)
 {
-    if (argc != 4)
-        printUsage(argv[0]);
+    if (argc != 7)
+        print_usage(argv[0]);
 
-    int n = atoi(argv[1]);
-    int steps = atoi(argv[2]);
-    int display_graphic = atoi(argv[3]);
+    // Get command line arguments
+    int steps, display_graphic;
+    char file_name[128];
+    get_command_line_args(argc, argv, &steps, &display_graphic, file_name);
 
     // Init graphic
     int width = 1000;
     int height = 1000;
 
-    if (display_graphic) {
-        glutInit(&argc, argv);
-        glutInitWindowPosition(300, 0);
-        glutInitWindowSize(width, height);
-        glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
-        glutCreateWindow("Fluid Simulation");
-        glutDisplayFunc(init_render);
-    }
+    glutInit(&argc, argv);
+    glutInitWindowPosition(300, 0);
+    glutInitWindowSize(width, height);
+    glutInitDisplayMode(GLUT_RGBA | GLUT_DOUBLE | GLUT_DEPTH);
+    glutCreateWindow("Fluid Simulation");
+    glutDisplayFunc(init_render);
 
     // Init the cube
-    FluidCube* cube = FluidCubeCreate(n, 1, 1, 1);
-
-    for (int i = n/4; i < 3*n/4; i++) {
-        for (int j = n/4; j < 3*n/4; j++) {
-            for (int k = n/4; k < 3*n/4; k++) {
-                FluidCubeAddDensity(cube, i, j, k, 2000);
-                FluidCubeAddVelocity(cube, i, j, k, 100, 100, 100);
-            }
-        }
-    }
-
-    /*
-    for (int z = 0; z < n; z++) {
-        FluidCubeAddDensity(cube, n-2, n-2, z, 200);
-        //FluidCubeAddVelocity(cube, 0, 0, z, 100, 100, 100);
-    }
-
-    for (int x = 0; x < n-1; x++) {
-        for (int y = 0; y < n-1; y++) {
-            for (int z = 0; z < n-1; z++) {
-                FluidCubeAddVelocity(cube, x, y, z, 100, 100, 100);
-            }
-        }
-    }
-     */
+    FluidCube* cube = get_input_from_file(file_name);
 
     // Start the simulation
     double start = get_time();
+
+    if (display_graphic)
+       draw_cube(cube);
     for (int step = 0; step < steps; step++) {
+        printf("---------- done step -----------\n");
         FluidCubeStep(cube);
-        draw_cube(cube);
-        printf("---------------------- done step -----------------------\n");
+        if (display_graphic)
+           draw_cube(cube);
     }
 
     FluidCubeFree(cube);
@@ -74,20 +58,65 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void printUsage(char *program_name)
+void get_command_line_args(int argc, char **argv, int *steps,
+                           int *display_graphic, char *file_name)
 {
-    printf("Usage: %s <n> <steps> <display graphic>\n\n", program_name);
+    char c;
+    while ((c = (char) getopt(argc, argv, "s:g:f:")) != -1) {
+        switch (c) {
+            case 's':
+                *steps = atoi(optarg);
+                break;
+            case 'g':
+                *display_graphic = atoi(optarg);
+                break;
+            case 'f':
+                strncpy(file_name, optarg, strlen(optarg));
+                break;
+            default:
+                print_usage(argv[0]);
+        }
+    }
+}
+
+void print_usage(char *program_name)
+{
+    printf("Usage: %s -s <steps> -g <display graphic> -f <file name>\n\n", program_name);
     exit(0);
 }
 
-double get_time()
+FluidCube* get_input_from_file(char *file_name)
 {
-    struct timeval t;
-    double retval;
+    FluidCube *cube;
+    FILE *fin = fopen(file_name, "r");
+    char n_str[10], diffusion_str[10], viscosity_str[10];
+    int n, diffusion, viscosity;
 
-    gettimeofday(&t, NULL);
-    retval = t.tv_sec;
-    retval += t.tv_usec / 1000000.0;
-    return retval;
+    fgets(n_str, 9, fin);
+    fgets(diffusion_str, 10, fin);
+    fgets(viscosity_str, 10, fin);
+    n = atoi(n_str);
+    diffusion = atoi(diffusion_str);
+    viscosity = atoi(viscosity_str);
+    cube = FluidCubeCreate(n, diffusion, viscosity, 1);
+
+    char line[64];
+    for (int x = 0; x < n; x++) {
+        for (int y = 0; y < n; y++) {
+            for (int z = 0; z < n; z++) {
+                fgets(line, 63, fin);
+                char c = line[strlen(line) - 2];
+                if (c == '1') {
+                    FluidCubeAddDensity(cube, x, y, z, initial_density);
+                    FluidCubeAddVelocity(cube, x, y, z, initial_velocity,
+                                         initial_velocity, initial_velocity);
+                }
+            }
+        }
+    }
+
+    fclose(fin);
+
+    return cube;
 }
 
