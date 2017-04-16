@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.5)
 project(fluid_simulation)
 
-set(CMAKE_C_STANDARD 11)
+#set(CMAKE_C_STANDARD 11)
 
-set(SOURCE_FILES src/main.cu src/graphic.cu src/fluid.cu includes/fluid.h
+set(SOURCE_FILES src/main.cpp src/graphic.cu src/fluid.cu includes/fluid.h
         includes/graphic.h src/utility.cu includes/utility.h)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)

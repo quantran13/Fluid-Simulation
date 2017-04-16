@@ -28,12 +28,15 @@ struct FluidCube {
 };
 typedef struct FluidCube FluidCube;
 
+extern "C"
+{
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt);
 void FluidCubeFree(FluidCube *cube);
 void FluidCubeStep(FluidCube *cube, perf_t *perf_struct);
 void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, double amount);
-void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z, 
+void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z,
                           double amountX, double amountY, double amountZ);
+}
 
 
 #endif

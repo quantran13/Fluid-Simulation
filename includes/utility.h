@@ -19,6 +19,9 @@ typedef struct {
     int totalAdvect;
 } perf_t;
 
+extern "C"
+{
 double get_time();
+}
 
 #endif //FLUID_SIMULATION_UTILITY_H
