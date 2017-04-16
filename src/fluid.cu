@@ -1,9 +1,8 @@
-#include <fluid.h>
-#include <utility.h>
+#include "../includes/fluid.h"
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
-    FluidCube *cube = malloc(sizeof(*cube));
+    FluidCube *cube = (FluidCube *) malloc(sizeof(*cube));
     size_t N = (size_t) size;
     
     cube->size = size;
@@ -11,16 +10,16 @@ FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
     cube->diff = diffusion;
     cube->visc = viscosity;
     
-    cube->s = calloc(N * N * N, sizeof(double));
-    cube->density = calloc(N * N * N, sizeof(double));
+    cube->s = (double *) calloc(N * N * N, sizeof(double));
+    cube->density = (double *) calloc(N * N * N, sizeof(double));
     
-    cube->Vx = calloc(N * N * N, sizeof(double));
-    cube->Vy = calloc(N * N * N, sizeof(double));
-    cube->Vz = calloc(N * N * N, sizeof(double));
+    cube->Vx = (double *) calloc(N * N * N, sizeof(double));
+    cube->Vy = (double *) calloc(N * N * N, sizeof(double));
+    cube->Vz = (double *) calloc(N * N * N, sizeof(double));
     
-    cube->Vx0 = calloc(N * N * N, sizeof(double));
-    cube->Vy0 = calloc(N * N * N, sizeof(double));
-    cube->Vz0 = calloc(N * N * N, sizeof(double));
+    cube->Vx0 = (double *) calloc(N * N * N, sizeof(double));
+    cube->Vy0 = (double *) calloc(N * N * N, sizeof(double));
+    cube->Vz0 = (double *) calloc(N * N * N, sizeof(double));
     
     return cube;
 }

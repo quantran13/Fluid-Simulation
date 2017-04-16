@@ -1,10 +1,10 @@
-CC=gcc
-CFLAGS=-g -Wall -std=c99 -Iincludes/
+CC=nvcc
+CFLAGS=-g -Iincludes/
 
 all: main
 
-main: src/fluid.c includes/fluid.h src/main.c src/graphic.c src/utility.c includes/utility.h includes/graphic.h
-	$(CC) $(CFLAGS) src/fluid.c src/main.c src/graphic.c src/utility.c -o main -lm -lGL -lglut
+main: src/fluid.cu includes/fluid.h src/main.cu src/graphic.cu src/utility.cu includes/utility.h includes/graphic.h
+	$(CC) $(CFLAGS) src/fluid.cu src/main.cu src/graphic.cu src/utility.cu -o main -lm -lGL -lglut
 
 clean:
 	rm -Rf main

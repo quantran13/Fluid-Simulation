@@ -2,7 +2,6 @@
 #include <graphic.h>
 #include <string.h>
 #include <getopt.h>
-#include <utility.h>
 
 const int initial_density = 2000;
 const int initial_velocity = 10;
@@ -35,7 +34,6 @@ int main(int argc, char **argv)
 
     // Init the cube
     FluidCube* cube = get_input_from_file(file_name);
-    int n = cube->size;
 
     // Start the simulation
     perf_t perf_struct;

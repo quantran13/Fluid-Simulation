@@ -7,7 +7,8 @@
 
 #include <stdio.h>
 #include <GL/glut.h>
-#include "fluid.h"
+#include <fluid.h>
+#include <utility.h>
 
 typedef struct {
     double r;

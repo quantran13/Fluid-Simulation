@@ -2,7 +2,6 @@
 // Created by quan on 4/11/17.
 //
 
-#include <utility.h>
 #include "graphic.h"
 
 void init_render()
