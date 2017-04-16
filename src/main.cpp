@@ -34,6 +34,10 @@ int main(int argc, char **argv)
 
     // Init the cube
     FluidCube* cube = get_input_from_file(file_name);
+    if (cube == NULL) {
+        fprintf(stderr, "Cannot open input file %s!\n", file_name);
+        print_usage(argv[0]);
+    }
 
     // Start the simulation
     perf_t perf_struct;
@@ -87,6 +91,7 @@ void get_command_line_args(int argc, char **argv, int *steps,
                 break;
             case 'f':
                 strncpy(file_name, optarg, strlen(optarg));
+                file_name[strlen(optarg)] = 0;
                 break;
             default:
                 print_usage(argv[0]);
@@ -96,7 +101,8 @@ void get_command_line_args(int argc, char **argv, int *steps,
 
 void print_usage(char *program_name)
 {
-    printf("Usage: %s -s <steps> -g <display graphic> -f <file name>\n\n", program_name);
+    fprintf(stderr, "Usage: %s -s <steps> -g <display graphic> -f <file name>\n\n",
+            program_name);
     exit(0);
 }
 
@@ -107,6 +113,9 @@ FluidCube* get_input_from_file(char *file_name)
     char n_str[10], diffusion_str[10], viscosity_str[10];
     int n, diffusion, viscosity;
 
+    if (fin == NULL)
+        return NULL;
+
     fgets(n_str, 9, fin);
     fgets(diffusion_str, 10, fin);
     fgets(viscosity_str, 10, fin);
@@ -115,12 +124,12 @@ FluidCube* get_input_from_file(char *file_name)
     viscosity = atoi(viscosity_str);
     cube = FluidCubeCreate(n, diffusion, viscosity, 1);
 
-    char line[64];
+    char line[5];
     for (int x = 0; x < n; x++) {
         for (int y = 0; y < n; y++) {
             for (int z = 0; z < n; z++) {
-                fgets(line, 63, fin);
-                char c = line[strlen(line) - 2];
+                fgets(line, 4, fin);
+                char c = line[0];
                 if (c == '1') {
                     FluidCubeAddDensity(cube, x, y, z, initial_density);
                     FluidCubeAddVelocity(cube, x, y, z, initial_velocity,
