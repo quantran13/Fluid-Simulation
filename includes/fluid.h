@@ -2,6 +2,7 @@
 #define FLUID_H
 
 #include <cuda.h>
+#include <cuda_runtime.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

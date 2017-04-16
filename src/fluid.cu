@@ -1,4 +1,4 @@
-#include "../includes/fluid.h"
+#include <fluid.h>
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
@@ -9,34 +9,34 @@ FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
     cube->dt = dt;
     cube->diff = diffusion;
     cube->visc = viscosity;
-    
-    cube->s = (double *) calloc(N * N * N, sizeof(double));
-    cube->density = (double *) calloc(N * N * N, sizeof(double));
-    
-    cube->Vx = (double *) calloc(N * N * N, sizeof(double));
-    cube->Vy = (double *) calloc(N * N * N, sizeof(double));
-    cube->Vz = (double *) calloc(N * N * N, sizeof(double));
-    
-    cube->Vx0 = (double *) calloc(N * N * N, sizeof(double));
-    cube->Vy0 = (double *) calloc(N * N * N, sizeof(double));
-    cube->Vz0 = (double *) calloc(N * N * N, sizeof(double));
-    
+
+    cudaMallocManaged((void **) &cube->s, N * N * N * sizeof(double));
+    cudaMallocManaged((void **) &cube->density, N * N * N * sizeof(double));
+
+    cudaMallocManaged((void **) &cube->Vx, N * N * N * sizeof(double));
+    cudaMallocManaged((void **) &cube->Vy, N * N * N * sizeof(double));
+    cudaMallocManaged((void **) &cube->Vz, N * N * N * sizeof(double));
+
+    cudaMallocManaged((void **) &cube->Vx0, N * N * N * sizeof(double));
+    cudaMallocManaged((void **) &cube->Vy0, N * N * N * sizeof(double));
+    cudaMallocManaged((void **) &cube->Vz0, N * N * N * sizeof(double));
+
     return cube;
 }
 
 void FluidCubeFree(FluidCube *cube)
 {
-    free(cube->s);
-    free(cube->density);
-    
-    free(cube->Vx);
-    free(cube->Vy);
-    free(cube->Vz);
-    
-    free(cube->Vx0);
-    free(cube->Vy0);
-    free(cube->Vz0);
-    
+    cudaFree(cube->s);
+    cudaFree(cube->density);
+
+    cudaFree(cube->Vx);
+    cudaFree(cube->Vy);
+    cudaFree(cube->Vz);
+
+    cudaFree(cube->Vx0);
+    cudaFree(cube->Vy0);
+    cudaFree(cube->Vz0);
+
     free(cube);
 }
 
@@ -60,7 +60,7 @@ static void set_bnd(int b, double *x, int N)
             x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
         }
     }
-    
+
     x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
                                   + x[IX(0, 1, 0)]
                                   + x[IX(0, 0, 1)]);
@@ -120,11 +120,10 @@ static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
     double i0, i1, j0, j1, k0, k1;
-    
+
     double dtx = dt * (N - 2);
     double dty = dt * (N - 2);
     double dtz = dt * (N - 2);
-    
 
     double Ndouble = N;
     double idouble, jdouble, kdouble;
@@ -141,36 +140,36 @@ static void advect(int b, double *d, double *d0,  double *velocX,
                 x    = idouble - tmp1;
                 y    = jdouble - tmp2;
                 z    = kdouble - tmp3;
-                
-                if(x < 0.5f) x = 0.5f; 
+
+                if(x < 0.5f) x = 0.5f;
                 if(x > Ndouble + 0.5f) x = Ndouble + 0.5f;
                 i0 = floor(x);
                 i1 = i0 + 1.0f;
-                if(y < 0.5f) y = 0.5f; 
+                if(y < 0.5f) y = 0.5f;
                 if(y > Ndouble + 0.5f) y = Ndouble + 0.5f;
                 j0 = floor(y);
-                j1 = j0 + 1.0f; 
+                j1 = j0 + 1.0f;
                 if(z < 0.5f) z = 0.5f;
                 if(z > Ndouble + 0.5f) z = Ndouble + 0.5f;
                 k0 = floor(z);
                 k1 = k0 + 1.0f;
-                
-                s1 = x - i0; 
-                s0 = 1.0f - s1; 
-                t1 = y - j0; 
+
+                s1 = x - i0;
+                s0 = 1.0f - s1;
+                t1 = y - j0;
                 t0 = 1.0f - t1;
                 u1 = z - k0;
                 u0 = 1.0f - u1;
-                
+
                 int i0i = (int) i0;
                 int i1i = (int) i1;
                 int j0i = (int) j0;
                 int j1i = (int) j1;
                 int k0i = (int) k0;
                 int k1i = (int) k1;
-                
-                d[IX(i, j, k)] = 
-                
+
+                d[IX(i, j, k)] =
+
                     s0 * ( t0 * (u0 * d0[IX(i0i, j0i, k0i)]
                                 +u1 * d0[IX(i0i, j0i, k1i)])
                         +( t1 * (u0 * d0[IX(i0i, j1i, k0i)]
@@ -204,7 +203,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
             }
         }
     }
-    set_bnd(0, div, N); 
+    set_bnd(0, div, N);
     set_bnd(0, p, N);
     lin_solve(0, p, div, 1, 6, iter, N);
 
@@ -303,12 +302,12 @@ void FluidCubeAddDensity(FluidCube *cube, int x, int y, int z, double amount)
     cube->density[IX(x, y, z)] += amount;
 }
 
-void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z, 
+void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z,
                           double amountX, double amountY, double amountZ)
 {
     int N = cube->size;
     int index = IX(x, y, z);
-    
+
     cube->Vx[index] += amountX;
     cube->Vy[index] += amountY;
     cube->Vz[index] += amountZ;
