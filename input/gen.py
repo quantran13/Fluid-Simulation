@@ -25,9 +25,9 @@ def main():
         for j in range(n):
             for k in range(n):
                 if check(i, n) and check(j, n) and check(k, n):
-                    print(1)
+                    fout.write(str(1) + "\n")
                 else:
-                    print(0)
+                    fout.write(str(0) + "\n")
 
     fout.close()
 
