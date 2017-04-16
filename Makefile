@@ -1,4 +1,4 @@
-SOURCES_FILES=fluid.cu graphic.cu utility.cu
+SOURCES_FILES=fluid.cu graphic.cu utility.cu fluid_kernels.cu
 MAIN_FILE=main.cpp
 BUILD_DIR=build/
 INCLUDE_DIR=includes/

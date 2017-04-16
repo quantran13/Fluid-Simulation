@@ -4,7 +4,8 @@ project(fluid_simulation)
 #set(CMAKE_C_STANDARD 11)
 
 set(SOURCE_FILES src/main.cpp src/graphic.cu src/fluid.cu includes/fluid.h
-        includes/graphic.h src/utility.cu includes/utility.h)
+        includes/graphic.h src/utility.cu includes/utility.h
+        includes/fluid_kernels.h src/fluid_kernels.cu)
 find_package(OpenGL REQUIRED)
 find_package(GLUT REQUIRED)
 find_package(CUDA QUIET REQUIRED)
