@@ -8,9 +8,6 @@
 __global__ void advect_kernel(double *d, double *d0, double *velocX, double *velocY,
                               double *velocZ, double dt, int N, int k)
 {
-    printf("%f\n", d[IX(0, 0, 0)]);
-    return;
-    /*
     double Ndouble = (double) N;
     double dtx = dt * (N - 2);
     double dty = dt * (N - 2);
@@ -70,5 +67,4 @@ __global__ void advect_kernel(double *d, double *d0, double *velocX, double *vel
                           +u1 * d0[IX(i1i, j0i, k1i)])
                     +( t1 * (u0 * d0[IX(i1i, j1i, k0i)]
                              +u1 * d0[IX(i1i, j1i, k1i)])));
-                             */
 }

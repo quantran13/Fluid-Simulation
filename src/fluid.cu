@@ -4,7 +4,7 @@ FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
     FluidCube *cube = (FluidCube *) malloc(sizeof(*cube));
     size_t N = (size_t) size;
-    
+
     cube->size = size;
     cube->dt = dt;
     cube->diff = diffusion;
@@ -119,82 +119,12 @@ static void diffuse (int b, double *x, double *x0, double diff, double dt, int i
 static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
-    /*
-    double dtx = dt * (N - 2);
-    double dty = dt * (N - 2);
-    double dtz = dt * (N - 2);
-
-    double Ndouble = N;
-    double idouble, jdouble, kdouble;
-    int i, j, k;
-
-    for(k = 1, kdouble = 1; k < N - 1; k++, kdouble++) {
-        for(j = 1, jdouble = 1; j < N - 1; j++, jdouble++) {
-            for(i = 1, idouble = 1; i < N - 1; i++, idouble++) {
-                double s0, s1, t0, t1, u0, u1;
-                double tmp1, tmp2, tmp3, x, y, z;
-                double i0, i1, j0, j1, k0, k1;
-
-                tmp1 = dtx * velocX[IX(i, j, k)];
-                tmp2 = dty * velocY[IX(i, j, k)];
-                tmp3 = dtz * velocZ[IX(i, j, k)];
-                x    = idouble - tmp1;
-                y    = jdouble - tmp2;
-                z    = kdouble - tmp3;
-
-                if(x < 0.5f) x = 0.5f;
-                if(x > Ndouble + 0.5f) x = Ndouble + 0.5f;
-                i0 = floor(x);
-                i1 = i0 + 1.0f;
-                if(y < 0.5f) y = 0.5f;
-                if(y > Ndouble + 0.5f) y = Ndouble + 0.5f;
-                j0 = floor(y);
-                j1 = j0 + 1.0f;
-                if(z < 0.5f) z = 0.5f;
-                if(z > Ndouble + 0.5f) z = Ndouble + 0.5f;
-                k0 = floor(z);
-                k1 = k0 + 1.0f;
-
-                s1 = x - i0;
-                s0 = 1.0f - s1;
-                t1 = y - j0;
-                t0 = 1.0f - t1;
-                u1 = z - k0;
-                u0 = 1.0f - u1;
-
-                int i0i = (int) i0;
-                int i1i = (int) i1;
-                int j0i = (int) j0;
-                int j1i = (int) j1;
-                int k0i = (int) k0;
-                int k1i = (int) k1;
-
-                d[IX(i, j, k)] =
-
-                    s0 * ( t0 * (u0 * d0[IX(i0i, j0i, k0i)]
-                                +u1 * d0[IX(i0i, j0i, k1i)])
-                        +( t1 * (u0 * d0[IX(i0i, j1i, k0i)]
-                                +u1 * d0[IX(i0i, j1i, k1i)])))
-                   +s1 * ( t0 * (u0 * d0[IX(i1i, j0i, k0i)]
-                                +u1 * d0[IX(i1i, j0i, k1i)])
-                        +( t1 * (u0 * d0[IX(i1i, j1i, k0i)]
-                                +u1 * d0[IX(i1i, j1i, k1i)])));
-            }
-        }
-    }
-    */
-
-    printf("%f\n", d[IX(0, 0, 0)]);
     for (int k = 1; k < N - 1; k++) {
-        printf("we\n");
         advect_kernel <<< N - 1, N - 1 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
     }
-    printf("done\n");
-    printf("%f\n", d[IX(0, 0, 0)]);
-    printf("---\n");
+    cudaDeviceSynchronize();
 
     set_bnd(b, d, N);
-    printf("what\n");
 }
 
 static void project(double *velocX, double *velocY, double *velocZ,
@@ -325,4 +255,3 @@ void FluidCubeAddVelocity(FluidCube *cube, int x, int y, int z,
     cube->Vy[index] += amountY;
     cube->Vz[index] += amountZ;
 }
-
