@@ -119,8 +119,7 @@ static void diffuse (int b, double *x, double *x0, double diff, double dt, int i
 static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
-    double i0, i1, j0, j1, k0, k1;
-
+    /*
     double dtx = dt * (N - 2);
     double dty = dt * (N - 2);
     double dtz = dt * (N - 2);
@@ -134,6 +133,8 @@ static void advect(int b, double *d, double *d0,  double *velocX,
             for(i = 1, idouble = 1; i < N - 1; i++, idouble++) {
                 double s0, s1, t0, t1, u0, u1;
                 double tmp1, tmp2, tmp3, x, y, z;
+                double i0, i1, j0, j1, k0, k1;
+
                 tmp1 = dtx * velocX[IX(i, j, k)];
                 tmp2 = dty * velocY[IX(i, j, k)];
                 tmp3 = dtz * velocZ[IX(i, j, k)];
@@ -181,7 +182,19 @@ static void advect(int b, double *d, double *d0,  double *velocX,
             }
         }
     }
+    */
+
+    printf("%f\n", d[IX(0, 0, 0)]);
+    for (int k = 1; k < N - 1; k++) {
+        printf("we\n");
+        advect_kernel <<< N - 1, N - 1 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
+    }
+    printf("done\n");
+    printf("%f\n", d[IX(0, 0, 0)]);
+    printf("---\n");
+
     set_bnd(b, d, N);
+    printf("what\n");
 }
 
 static void project(double *velocX, double *velocY, double *velocZ,

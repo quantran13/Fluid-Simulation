@@ -5,7 +5,11 @@
 #ifndef FLUID_SIMULATION_FLUID_KERNELS_H
 #define FLUID_SIMULATION_FLUID_KERNELS_H
 
-__global__ void advect_kernel(double *d, double *d0, double *vecX, double *vecY,
-                              double *vecZ, double dt, int N);
+#include <math.h>
+#include <utility.h>
+#include <stdio.h>
+
+__global__ void advect_kernel(double *d, double *d0, double *vecX, double *velocY,
+                              double *lo, double dt, int N, int k);
 
 #endif //FLUID_SIMULATION_FLUID_KERNELS_H

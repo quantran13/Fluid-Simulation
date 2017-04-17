@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#define IX(x, y, z) ((x) + (y) * N + (z) * N * N)
+
 typedef struct {
     double timeDrawSquare;
     double timeDrawing;

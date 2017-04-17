@@ -3,12 +3,11 @@
 
 #include <cuda.h>
 #include <cuda_runtime.h>
+#include <fluid_kernels.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <utility.h>
-
-#define IX(x, y, z) ((x) + (y) * N + (z) * N * N)
 
 struct FluidCube {
     int size;
