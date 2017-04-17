@@ -42,24 +42,8 @@ void FluidCubeFree(FluidCube *cube)
 
 static void set_bnd(int b, double *x, int N)
 {
-    for(int j = 1; j < N - 1; j++) {
-        for(int i = 1; i < N - 1; i++) {
-            x[IX(i, j, 0  )] = b == 3 ? -x[IX(i, j, 1  )] : x[IX(i, j, 1  )];
-            x[IX(i, j, N-1)] = b == 3 ? -x[IX(i, j, N-2)] : x[IX(i, j, N-2)];
-        }
-    }
-    for(int k = 1; k < N - 1; k++) {
-        for(int i = 1; i < N - 1; i++) {
-            x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
-            x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
-        }
-    }
-    for(int k = 1; k < N - 1; k++) {
-        for(int j = 1; j < N - 1; j++) {
-            x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
-            x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
-        }
-    }
+    set_bnd_kernel1 <<< N-2, N-2 >>> (b, x, N);
+    cudaDeviceSynchronize();
 
     x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
                                   + x[IX(0, 1, 0)]
@@ -120,7 +104,7 @@ static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
     for (int k = 1; k < N - 1; k++) {
-        advect_kernel <<< N - 1, N - 1 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
+        advect_kernel <<< N - 2, N - 2 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
     }
     cudaDeviceSynchronize();
 
