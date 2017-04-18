@@ -3,7 +3,6 @@
 //
 
 #include <fluid_kernels.h>
-#include <device_launch_parameters.h>
 
 __global__ void advect_kernel(double *d, double *d0, double *velocX, double *velocY,
                               double *velocZ, double dt, int N, int k)
