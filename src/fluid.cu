@@ -115,7 +115,7 @@ static void advect(int b, double *d, double *d0,  double *velocX,
         advect_kernel <<< N - 2, N - 2 >>> (d_d, d0, velocX, velocY, velocZ, dt, N, k);
     }
     cudaDeviceSynchronize();
-     (d, d_d, sizeof(double)*N*N*N, cudaMemcpyDeviceToHost);
+    cudaMemcpy(d, d_d, sizeof(double)*N*N*N, cudaMemcpyDeviceToHost);
     printf("%f\n", d[IX(0, 0, 0)]);
 
     cudaFree(d_d);
