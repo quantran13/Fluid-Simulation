@@ -69,7 +69,7 @@ __global__ void advect_kernel(double *d, double *d0, double *velocX, double *vel
                              +u1 * d0[IX(i1i, j1i, k1i)])));
 }
 
-__global__ void set_bnd_kernel1(int b, double *x, int N)
+__global__ void set_bnd_kernel(int b, double *x, int N)
 {
     int j = blockIdx.x + 1;
     int i = threadIdx.x + 1;
@@ -84,20 +84,20 @@ __global__ void set_bnd_kernel1(int b, double *x, int N)
     x[IX(N-1, i, j)] = b == 1 ? -x[IX(N-2, i, j)] : x[IX(N-2, i, j)];
 }
 
-__global__ void set_bnd_kernel2(int b, double *x, int N)
-{
-    int k = blockIdx.x + 1;
-    int i = threadIdx.x + 1;
-
-    x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
-    x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
-}
-
-__global__ void set_bnd_kernel3(int b, double *x, int N)
+__global__ void project_kernel(double *velocX, double *velocY, double *velocZ,
+                               double *p, double *div, int iter, int N,
+                               double N_recip, int k)
 {
     int j = blockIdx.x + 1;
-    int k = threadIdx.x + 1;
+    int i = threadIdx.x + 1;
 
-    x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
-    x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
+    div[IX(i, j, k)] = -0.5f*(
+             velocX[IX(i+1, j  , k  )]
+            -velocX[IX(i-1, j  , k  )]
+            +velocY[IX(i  , j+1, k  )]
+            -velocY[IX(i  , j-1, k  )]
+            +velocZ[IX(i  , j  , k+1)]
+            -velocZ[IX(i  , j  , k-1)]
+        ) / N_recip;
+    p[IX(i, j, k)] = 0;
 }

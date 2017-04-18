@@ -1,4 +1,5 @@
 #include <fluid.h>
+#include <unistd.h>
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
@@ -42,12 +43,14 @@ void FluidCubeFree(FluidCube *cube)
 
 static void set_bnd(int b, double *x, int N)
 {
-    set_bnd_kernel1 <<< N-2, N-2 >>> (b, x, N);
+    set_bnd_kernel <<< N-2, N-2 >>> (b, x, N);
     cudaDeviceSynchronize();
+    printf("   %p\n", x);
 
     x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
                                   + x[IX(0, 1, 0)]
                                   + x[IX(0, 0, 1)]);
+    printf("fa\n");
     x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
                                   + x[IX(0, N-2, 0)]
                                   + x[IX(0, N-1, 1)]);
@@ -103,10 +106,19 @@ static void diffuse (int b, double *x, double *x0, double diff, double dt, int i
 static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
+    printf("%f\n", d[IX(0, 0, 0)]);
+    double *d_d;
+    cudaMalloc((void **) &d_d, N*N*N*sizeof(double));
+    cudaMemcpy(d_d, d, sizeof(double)*N*N*N, cudaMemcpyHostToDevice);
+
     for (int k = 1; k < N - 1; k++) {
-        advect_kernel <<< N - 2, N - 2 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
+        advect_kernel <<< N - 2, N - 2 >>> (d_d, d0, velocX, velocY, velocZ, dt, N, k);
     }
     cudaDeviceSynchronize();
+     (d, d_d, sizeof(double)*N*N*N, cudaMemcpyDeviceToHost);
+    printf("%f\n", d[IX(0, 0, 0)]);
+
+    cudaFree(d_d);
 
     set_bnd(b, d, N);
 }
@@ -116,20 +128,25 @@ static void project(double *velocX, double *velocY, double *velocZ,
 {
     double N_recip = 1 / N;
     for (int k = 1; k < N - 1; k++) {
-        for (int j = 1; j < N - 1; j++) {
-            for (int i = 1; i < N - 1; i++) {
-                div[IX(i, j, k)] = -0.5f*(
-                         velocX[IX(i+1, j  , k  )]
-                        -velocX[IX(i-1, j  , k  )]
-                        +velocY[IX(i  , j+1, k  )]
-                        -velocY[IX(i  , j-1, k  )]
-                        +velocZ[IX(i  , j  , k+1)]
-                        -velocZ[IX(i  , j  , k-1)]
-                    ) * N_recip;
-                p[IX(i, j, k)] = 0;
-            }
-        }
+        project_kernel <<< N-1, N-1 >>> (velocX, velocY, velocZ, p, div, iter, N, N_recip, k);
+
+        // for (int j = 1; j < N - 1; j++) {
+        //     for (int i = 1; i < N - 1; i++) {
+        //         div[IX(i, j, k)] = -0.5f*(
+        //                  velocX[IX(i+1, j  , k  )]
+        //                 -velocX[IX(i-1, j  , k  )]
+        //                 +velocY[IX(i  , j+1, k  )]
+        //                 -velocY[IX(i  , j-1, k  )]
+        //                 +velocZ[IX(i  , j  , k+1)]
+        //                 -velocZ[IX(i  , j  , k-1)]
+        //             ) * N_recip;
+        //         p[IX(i, j, k)] = 0;
+        //     }
+        // }
     }
+    cudaDeviceSynchronize();
+    printf("something\n");
+
     set_bnd(0, div, N);
     set_bnd(0, p, N);
     lin_solve(0, p, div, 1, 6, iter, N);
@@ -149,6 +166,8 @@ static void project(double *velocX, double *velocY, double *velocZ,
     set_bnd(1, velocX, N);
     set_bnd(2, velocY, N);
     set_bnd(3, velocZ, N);
+
+    printf("awd\n");
 }
 
 void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
