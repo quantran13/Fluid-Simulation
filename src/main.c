@@ -46,7 +46,7 @@ int main(int argc, char **argv)
     if (write_result) {
         result_file = fopen(result_file_name, "w");
         if (result_file == NULL) {
-            fprintf(stderr, "WARNING: cannot open result file '%s' to write!",
+            fprintf(stderr, "WARNING: cannot open result file '%s' to write!\n\n",
                     result_file_name);
         }
     }
@@ -172,7 +172,7 @@ char *get_result_file_name(char *input_file)
         if (input_file[i] == '/') break;
 
     char *file_name = input_file + i + 1;
-    strcpy(result, "results/result_");
+    strcpy(result, "output/result_");
     strcat(result, file_name);
     return result;
 }
