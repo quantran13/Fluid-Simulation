@@ -11,8 +11,9 @@ FluidCube* get_input_from_file(char *file_name);
 void get_command_line_args(int argc, char **argv, int *steps, int *write_result,
                            int *display_graphic, char *file_name);
 char *get_result_file_name(char *input_file);
-void print_result(FluidCube *cube, FILE *result_file);
+void print_result(FluidCube *cube, FILE *result_file, int print_full);
 char *double_to_string(double x);
+int is_boundary(int i, int j, int k, int N);
 
 int main(int argc, char **argv)
 {
@@ -70,7 +71,7 @@ int main(int argc, char **argv)
 
     for (int step = 0; step < steps; step++) {
         FluidCubeStep(cube, &perf_struct);
-        print_result(cube, result_file);
+        print_result(cube, result_file, cube->size <= 66);
 
         if (display_graphic)
             draw_cube(cube, &perf_struct);
@@ -176,7 +177,7 @@ char *get_result_file_name(char *input_file)
     return result;
 }
 
-void print_result(FluidCube *cube, FILE *result_file)
+void print_result(FluidCube *cube, FILE *result_file, int print_full)
 {
     if (result_file == NULL)
         return;
@@ -189,37 +190,53 @@ void print_result(FluidCube *cube, FILE *result_file)
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             for (int k = 0; k < N; k++) {
-                char *num = double_to_string(cube->s[IX(k, j, i)]);
-                fputs(num, result_file);
-                fputs(space, result_file);
-                free(num);
+                if (print_full || is_boundary(i, j, k, N)) {
+                    char *num = double_to_string(cube->s[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
 
-                num = double_to_string(cube->density[IX(k, j, i)]);
-                fputs(num, result_file);
-                fputs(space, result_file);
-                free(num);
+                    num = double_to_string(cube->density[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
 
-                num = double_to_string(cube->Vx[IX(k, j, i)]);
-                fputs(num, result_file);
-                fputs(space, result_file);
-                free(num);
+                    num = double_to_string(cube->Vx[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
 
-                num = double_to_string(cube->Vy[IX(k, j, i)]);
-                fputs(num, result_file);
-                fputs(space, result_file);
-                free(num);
+                    num = double_to_string(cube->Vy[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
 
-                num = double_to_string(cube->Vz[IX(k, j, i)]);
-                fputs(num, result_file);
-                fputs(space, result_file);
-                free(num);
+                    num = double_to_string(cube->Vz[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
 
-                fputs(newline, result_file);
+                    fputs(newline, result_file);
+                }
             }
         }
     }
 
     fputs(linebreak, result_file);
+}
+
+int is_boundary(int i, int j, int k, int N)
+{
+    int bool1 = i > 1 && i < N - 2;
+    int bool2 = j > 1 && j < N - 2;
+    int bool3 = k > 1 && k < N - 2;
+    int count = 0;
+
+    if (bool1) count++;
+    if (bool2) count++;
+    if (bool3) count++;
+
+    return count <= 1;
 }
 
 char *double_to_string(double x)
