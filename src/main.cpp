@@ -8,18 +8,23 @@ const int initial_velocity = 10;
 
 void print_usage(char *program_name);
 FluidCube* get_input_from_file(char *file_name);
-void get_command_line_args(int argc, char **argv, int *steps,
+void get_command_line_args(int argc, char **argv, int *steps, int *write_result,
                            int *display_graphic, char *file_name);
+char *get_result_file_name(char *input_file);
+void print_result(FluidCube *cube, FILE *result_file, int print_full);
+char *double_to_string(double x);
+int is_boundary(int i, int j, int k, int N);
 
 int main(int argc, char **argv)
 {
-    if (argc != 7)
+    if (argc != 9)
         print_usage(argv[0]);
 
     // Get command line arguments
-    int steps, display_graphic;
+    int steps, display_graphic, write_result;
     char file_name[128];
-    get_command_line_args(argc, argv, &steps, &display_graphic, file_name);
+    get_command_line_args(argc, argv, &steps, &write_result, &display_graphic,
+                          file_name);
 
     // Init graphic
     int width = 1000;
@@ -39,7 +44,18 @@ int main(int argc, char **argv)
         print_usage(argv[0]);
     }
 
-    // Start the simulation
+    // Delete the output file's content
+    char *result_file_name = get_result_file_name(file_name);
+    FILE *result_file = NULL;
+    if (write_result) {
+        result_file = fopen(result_file_name, "w");
+        if (result_file == NULL) {
+            fprintf(stderr, "WARNING: cannot open result file '%s' to write!\n\n",
+                    result_file_name);
+        }
+    }
+
+    // Set up the performance info struct
     perf_t perf_struct;
     perf_struct.timeDrawSquare = 0;
     perf_struct.timeDrawing = 0;
@@ -50,22 +66,31 @@ int main(int argc, char **argv)
     perf_struct.totalAdvect = 0;
     perf_struct.totalProject = 0;
 
+    // Start the simulation
     double start = get_time();
 
+    printf("---------- starting  ----------\n");
     if (display_graphic)
         draw_cube(cube, &perf_struct);
+
     for (int step = 0; step < steps; step++) {
-        printf("---------- done step -----------\n");
         FluidCubeStep(cube, &perf_struct);
+        print_result(cube, result_file, cube->size < 66);
 
         if (display_graphic)
             draw_cube(cube, &perf_struct);
+        printf("---------- done step ----------\n");
     }
 
-    FluidCubeFree(cube);
-
+    printf("---------- finished  ----------\n\n");
     double end = get_time();
     double elapsed = end - start;
+
+    // End the simulation and print the profiling result
+    FluidCubeFree(cube);
+    free(result_file_name);
+    if (result_file != NULL)
+        fclose(result_file);
 
     printf("Elapsed time: %fs.\n", elapsed);
     printf("Average - diffuse: %f\n", perf_struct.timeDiffuse / perf_struct.totalDiffuse);
@@ -77,11 +102,11 @@ int main(int argc, char **argv)
     return 0;
 }
 
-void get_command_line_args(int argc, char **argv, int *steps,
+void get_command_line_args(int argc, char **argv, int *steps, int *write_result,
                            int *display_graphic, char *file_name)
 {
     char c;
-    while ((c = (char) getopt(argc, argv, "s:g:f:")) != -1) {
+    while ((c = (char) getopt(argc, argv, "s:g:f:r:")) != -1) {
         switch (c) {
             case 's':
                 *steps = atoi(optarg);
@@ -93,6 +118,9 @@ void get_command_line_args(int argc, char **argv, int *steps,
                 strncpy(file_name, optarg, strlen(optarg));
                 file_name[strlen(optarg)] = 0;
                 break;
+            case 'r':
+                *write_result = atoi(optarg);
+                break;
             default:
                 print_usage(argv[0]);
         }
@@ -101,8 +129,8 @@ void get_command_line_args(int argc, char **argv, int *steps,
 
 void print_usage(char *program_name)
 {
-    fprintf(stderr, "Usage: %s -s <steps> -g <display graphic> -f <file name>\n\n",
-            program_name);
+    printf("Usage: %s -s <steps> -g <display graphic> -f <file name>"
+                   " -r <write result>\n\n", program_name);
     exit(0);
 }
 
@@ -144,3 +172,85 @@ FluidCube* get_input_from_file(char *file_name)
     return cube;
 }
 
+char *get_result_file_name(char *input_file)
+{
+    char *result = (char *) malloc(sizeof(char) * 152);
+    int i = 0;
+    for (i = (int) strlen(input_file) - 1; i >= 0; i--)
+        if (input_file[i] == '/') break;
+
+    char *file_name = input_file + i + 1;
+    strcpy(result, "output/result_");
+    strcat(result, file_name);
+    return result;
+}
+
+void print_result(FluidCube *cube, FILE *result_file, int print_full)
+{
+    if (result_file == NULL)
+        return;
+
+    int N = cube->size;
+    char space[2] = " ";
+    char newline[2] = "\n";
+    char linebreak[6] = "----\n";
+
+    for (int i = 0; i < N; i++) {
+        for (int j = 0; j < N; j++) {
+            for (int k = 0; k < N; k++) {
+                if (print_full || is_boundary(i, j, k, N)) {
+                    char *num = double_to_string(cube->s[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
+
+                    num = double_to_string(cube->density[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
+
+                    num = double_to_string(cube->Vx[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
+
+                    num = double_to_string(cube->Vy[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
+
+                    num = double_to_string(cube->Vz[IX(k, j, i)]);
+                    fputs(num, result_file);
+                    fputs(space, result_file);
+                    free(num);
+
+                    fputs(newline, result_file);
+                }
+            }
+        }
+    }
+
+    fputs(linebreak, result_file);
+}
+
+int is_boundary(int i, int j, int k, int N)
+{
+    int bool1 = i > 1 && i < N - 2;
+    int bool2 = j > 1 && j < N - 2;
+    int bool3 = k > 1 && k < N - 2;
+    int count = 0;
+
+    if (bool1) count++;
+    if (bool2) count++;
+    if (bool3) count++;
+
+    return count <= 1;
+}
+
+char *double_to_string(double x)
+{
+    char *num = (char *) malloc(sizeof(char) * 9);
+    sprintf(num, "%.4f", x);
+
+    return num;
+}
