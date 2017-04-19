@@ -128,21 +128,21 @@ static void project(double *velocX, double *velocY, double *velocZ,
 {
     double N_recip = 1 / N;
     for (int k = 1; k < N - 1; k++) {
-        project_kernel <<< N-1, N-1 >>> (velocX, velocY, velocZ, p, div, iter, N, N_recip, k);
+        //project_kernel <<< N-1, N-1 >>> (velocX, velocY, velocZ, p, div, iter, N, N_recip, k);
 
-        // for (int j = 1; j < N - 1; j++) {
-        //     for (int i = 1; i < N - 1; i++) {
-        //         div[IX(i, j, k)] = -0.5f*(
-        //                  velocX[IX(i+1, j  , k  )]
-        //                 -velocX[IX(i-1, j  , k  )]
-        //                 +velocY[IX(i  , j+1, k  )]
-        //                 -velocY[IX(i  , j-1, k  )]
-        //                 +velocZ[IX(i  , j  , k+1)]
-        //                 -velocZ[IX(i  , j  , k-1)]
-        //             ) * N_recip;
-        //         p[IX(i, j, k)] = 0;
-        //     }
-        // }
+         for (int j = 1; j < N - 1; j++) {
+             for (int i = 1; i < N - 1; i++) {
+                 div[IX(i, j, k)] = -0.5f*(
+                          velocX[IX(i+1, j  , k  )]
+                         -velocX[IX(i-1, j  , k  )]
+                         +velocY[IX(i  , j+1, k  )]
+                         -velocY[IX(i  , j-1, k  )]
+                         +velocZ[IX(i  , j  , k+1)]
+                         -velocZ[IX(i  , j  , k-1)]
+                     ) * N_recip;
+                 p[IX(i, j, k)] = 0;
+             }
+         }
     }
     cudaDeviceSynchronize();
     printf("something\n");
