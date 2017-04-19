@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
     for (int step = 0; step < steps; step++) {
         FluidCubeStep(cube, &perf_struct);
-        print_result(cube, result_file, cube->size <= 66);
+        print_result(cube, result_file, cube->size < 66);
 
         if (display_graphic)
             draw_cube(cube, &perf_struct);
