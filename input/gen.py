@@ -7,7 +7,7 @@ def printUsage(progName):
     exit(0)
 
 def check(x, n):
-    return x >= n/4 and x <= 3*n/4
+    return x < n/4 or x > 3*n/4
 
 def main():
     if len(sys.argv) != 3:
