@@ -249,8 +249,13 @@ int is_boundary(int i, int j, int k, int N)
 
 char *double_to_string(double x)
 {
+    // round x to 5 decimal points
+    long longX = (long) x * 100000;
+    x = longX / 100000.0;
+    if (x == -0.0) x = 0.0;
+
     char *num = (char *) malloc(sizeof(char) * 9);
-    sprintf(num, "%.4f", x);
+    sprintf(num, "%.5f", x);
 
     return num;
 }
