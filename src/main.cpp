@@ -5,6 +5,7 @@
 
 const int initial_density = 2000;
 const int initial_velocity = 10;
+const int print_full_threshold = 66;
 
 void print_usage(char *program_name);
 FluidCube* get_input_from_file(char *file_name);
@@ -68,17 +69,19 @@ int main(int argc, char **argv)
 
     // Start the simulation
     double start = get_time();
+    int slice = 20;
 
     printf("---------- starting  ----------\n");
     if (display_graphic)
-        draw_cube(cube, &perf_struct);
+        draw_cube(cube, &perf_struct, slice);
+    print_result(cube, result_file, cube->size < print_full_threshold);
 
     for (int step = 0; step < steps; step++) {
         FluidCubeStep(cube, &perf_struct);
-        print_result(cube, result_file, cube->size < 66);
+        print_result(cube, result_file, cube->size < print_full_threshold);
 
         if (display_graphic)
-            draw_cube(cube, &perf_struct);
+            draw_cube(cube, &perf_struct, slice);
         printf("---------- done step ----------\n");
     }
 
