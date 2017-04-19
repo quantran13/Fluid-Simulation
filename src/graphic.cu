@@ -2,7 +2,6 @@
 // Created by quan on 4/11/17.
 //
 
-#include <utility.h>
 #include "graphic.h"
 
 void init_render()
@@ -26,7 +25,7 @@ void draw_cube(FluidCube *cube, perf_t *perf_struct)
     for (int i = 0; i < N; i++) {
         for (int j = 0; j < N; j++) {
             color_t color;
-            double density = cube->density[IX(i, j, 50)];
+            double density = cube->density[IX(i, j, 25)];
             color.r = density;
             color.g = density;
             color.b = density;
@@ -50,7 +49,6 @@ void draw_square(int x, int y, double vsize, double hsize, color_t* color)
     double up_y = 1.0 - (double) y * vsize;
     double down_y = 1.0 - (double) (y + 1) * vsize;
 
-    //printf("%f %f %f\n", color->r, color->g, color->b);
     glColor3d(color->r, color->g, color->b);
     glBegin(GL_POLYGON);
     glVertex2d(left_x, up_y);

@@ -8,6 +8,8 @@
 #include <stdlib.h>
 #include <sys/time.h>
 
+#define IX(x, y, z) ((x) + (y) * N + (z) * N * N)
+
 typedef struct {
     double timeDrawSquare;
     double timeDrawing;
@@ -19,6 +21,9 @@ typedef struct {
     int totalAdvect;
 } perf_t;
 
+extern "C"
+{
 double get_time();
+}
 
 #endif //FLUID_SIMULATION_UTILITY_H
