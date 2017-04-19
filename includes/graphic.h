@@ -19,7 +19,7 @@ typedef struct {
 extern "C"
 {
 void init_render();
-void draw_cube(FluidCube *cube, perf_t *perf_struct);
+void draw_cube(FluidCube *cube, perf_t *perf_struct, int z);
 void draw_square(int x, int y, double vsize, double hsize, color_t* color);
 }
 
