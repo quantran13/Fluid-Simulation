@@ -97,6 +97,25 @@ __global__ void project_kernel(double *velocX, double *velocY, double *velocZ,
             -velocY[IX(i  , j-1, k  )]
             +velocZ[IX(i  , j  , k+1)]
             -velocZ[IX(i  , j  , k-1)]
-        ) / N_recip;
+        ) * N_recip;
     p[IX(i, j, k)] = 0;
+}
+
+__global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip, int N)
+{
+    for (int m = 1; m < N - 1; m++) {
+        for (int j = 1; j < N - 1; j++) {
+            for (int i = 1; i < N - 1; i++) {
+                x[IX(i, j, m)] =
+                    (x0[IX(i, j, m)]
+                        + a*(    x[IX(i+1, j  , m  )]
+                                +x[IX(i-1, j  , m  )]
+                                +x[IX(i  , j+1, m  )]
+                                +x[IX(i  , j-1, m  )]
+                                +x[IX(i  , j  , m+1)]
+                                +x[IX(i  , j  , m-1)]
+                       )) * cRecip;
+            }
+        }
+    }
 }
