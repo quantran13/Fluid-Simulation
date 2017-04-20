@@ -1,0 +1,19 @@
+---------- starting  ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- done step ----------
+---------- finished  ----------
+
+Elapsed time: 0.753552s.
+Average - diffuse: 0.001632
+Average - advect : 0.001263
+Average - project: 0.002804
+Average - drawing: 0.000000
+Average - draw square: 0.000000
