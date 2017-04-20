@@ -1,5 +1,4 @@
 #include <fluid.h>
-#include <unistd.h>
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
@@ -43,14 +42,33 @@ void FluidCubeFree(FluidCube *cube)
 
 static void set_bnd(int b, double *x, int N)
 {
-    set_bnd_kernel <<< N-2, N-2 >>> (b, x, N);
-    cudaDeviceSynchronize();
-    printf("   %p\n", x);
+    for(int j = 1; j < N - 1; j++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, j, 0  )] = b == 3 ? -x[IX(i, j, 1  )] : x[IX(i, j, 1  )];
+            x[IX(i, j, N-1)] = b == 3 ? -x[IX(i, j, N-2)] : x[IX(i, j, N-2)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
+            x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int j = 1; j < N - 1; j++) {
+            x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
+            x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
+        }
+    }
+
+//    set_bnd_kernel <<< N-3, N-3 >>> (b, x, N);
+//    cudaDeviceSynchronize();
+//    printf("   %p\n", x);
 
     x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
                                   + x[IX(0, 1, 0)]
                                   + x[IX(0, 0, 1)]);
-    printf("fa\n");
+    //printf("fa\n");
     x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
                                   + x[IX(0, N-2, 0)]
                                   + x[IX(0, N-1, 1)]);
@@ -106,20 +124,78 @@ static void diffuse (int b, double *x, double *x0, double diff, double dt, int i
 static void advect(int b, double *d, double *d0,  double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
-    printf("%f\n", d[IX(0, 0, 0)]);
-    double *d_d;
-    cudaMalloc((void **) &d_d, N*N*N*sizeof(double));
-    cudaMemcpy(d_d, d, sizeof(double)*N*N*N, cudaMemcpyHostToDevice);
+//    double i0, i1, j0, j1, k0, k1;
+//
+//    double dtx = dt * (N - 2);
+//    double dty = dt * (N - 2);
+//    double dtz = dt * (N - 2);
+//
+//    double s0, s1, t0, t1, u0, u1;
+//    double tmp1, tmp2, tmp3, x, y, z;
+//
+//    double Ndouble = N;
+//    double idouble, jdouble, kdouble;
+//    int i, j, k;
+//
+//    for(k = 1, kdouble = 1; k < N - 1; k++, kdouble++) {
+//        for(j = 1, jdouble = 1; j < N - 1; j++, jdouble++) {
+//            for(i = 1, idouble = 1; i < N - 1; i++, idouble++) {
+//                tmp1 = dtx * velocX[IX(i, j, k)];
+//                tmp2 = dty * velocY[IX(i, j, k)];
+//                tmp3 = dtz * velocZ[IX(i, j, k)];
+//                x    = idouble - tmp1;
+//                y    = jdouble - tmp2;
+//                z    = kdouble - tmp3;
+//
+//                if(x < 0.5f) x = 0.5f;
+//                if(x > Ndouble + 0.5f) x = Ndouble + 0.5f;
+//                i0 = floorf(x);
+//                i1 = i0 + 1.0f;
+//                if(y < 0.5f) y = 0.5f;
+//                if(y > Ndouble + 0.5f) y = Ndouble + 0.5f;
+//                j0 = floorf(y);
+//                j1 = j0 + 1.0f;
+//                if(z < 0.5f) z = 0.5f;
+//                if(z > Ndouble + 0.5f) z = Ndouble + 0.5f;
+//                k0 = floorf(z);
+//                k1 = k0 + 1.0f;
+//
+//                s1 = x - i0;
+//                s0 = 1.0f - s1;
+//                t1 = y - j0;
+//                t0 = 1.0f - t1;
+//                u1 = z - k0;
+//                u0 = 1.0f - u1;
+//
+//                int i0i = (int) i0;
+//                int i1i = (int) i1;
+//                int j0i = (int) j0;
+//                int j1i = (int) j1;
+//                int k0i = (int) k0;
+//                int k1i = (int) k1;
+//
+//                d[IX(i, j, k)] =
+//
+//                        s0 * ( t0 * (u0 * d0[IX(i0i, j0i, k0i)]
+//                                     +u1 * d0[IX(i0i, j0i, k1i)])
+//                               +( t1 * (u0 * d0[IX(i0i, j1i, k0i)]
+//                                        +u1 * d0[IX(i0i, j1i, k1i)])))
+//                        +s1 * ( t0 * (u0 * d0[IX(i1i, j0i, k0i)]
+//                                      +u1 * d0[IX(i1i, j0i, k1i)])
+//                                +( t1 * (u0 * d0[IX(i1i, j1i, k0i)]
+//                                         +u1 * d0[IX(i1i, j1i, k1i)])));
+//            }
+//        }
+//    }
 
+//    printf("%f\n", velocX[IX(0, 0, 0)]);
     for (int k = 1; k < N - 1; k++) {
-        advect_kernel <<< N - 2, N - 2 >>> (d_d, d0, velocX, velocY, velocZ, dt, N, k);
+        advect_kernel <<< N-2, N-2 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
     }
     cudaDeviceSynchronize();
-    cudaMemcpy(d, d_d, sizeof(double)*N*N*N, cudaMemcpyDeviceToHost);
-    printf("%f\n", d[IX(0, 0, 0)]);
-
-    cudaFree(d_d);
-
+//    printf("%f\n", velocX[IX(0, 0, 0)]);
+//
+//    printf("set_bnd\n");
     set_bnd(b, d, N);
 }
 
@@ -128,7 +204,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
 {
     double N_recip = 1 / N;
     for (int k = 1; k < N - 1; k++) {
-        //project_kernel <<< N-1, N-1 >>> (velocX, velocY, velocZ, p, div, iter, N, N_recip, k);
+//        project_kernel <<< N-3, N-3 >>> (velocX, velocY, velocZ, p, div, iter, N, N_recip, k);
 
          for (int j = 1; j < N - 1; j++) {
              for (int i = 1; i < N - 1; i++) {
@@ -144,8 +220,8 @@ static void project(double *velocX, double *velocY, double *velocZ,
              }
          }
     }
-    cudaDeviceSynchronize();
-    printf("something\n");
+//    cudaDeviceSynchronize();
+//    printf("something\n");
 
     set_bnd(0, div, N);
     set_bnd(0, p, N);
@@ -167,7 +243,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
     set_bnd(2, velocY, N);
     set_bnd(3, velocZ, N);
 
-    printf("awd\n");
+    //printf("awd\n");
 }
 
 void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
