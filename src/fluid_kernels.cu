@@ -68,7 +68,7 @@ __global__ void advect_kernel(double *d, double *d0, double *velocX, double *vel
                              +u1 * d0[IX(i1i, j1i, k1i)])));
 }
 
-__global__ void set_bnd_kernel(int b, double *x, int N)
+__global__ void set_bnd_kernel1(int b, double *x, int N)
 {
     int j = blockIdx.x + 1;
     int i = threadIdx.x + 1;
@@ -83,7 +83,35 @@ __global__ void set_bnd_kernel(int b, double *x, int N)
     x[IX(N-1, i, j)] = b == 1 ? -x[IX(N-2, i, j)] : x[IX(N-2, i, j)];
 }
 
-__global__ void project_kernel(double *velocX, double *velocY, double *velocZ,
+__global__ void set_bnd_kernel2(double *x, int N)
+{
+    x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
+                                  + x[IX(0, 1, 0)]
+                                  + x[IX(0, 0, 1)]);
+    x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
+                                  + x[IX(0, N-2, 0)]
+                                  + x[IX(0, N-1, 1)]);
+    x[IX(0, 0, N-1)]     = 0.33f * (x[IX(1, 0, N-1)]
+                                  + x[IX(0, 1, N-1)]
+                                  + x[IX(0, 0, N)]);
+    x[IX(0, N-1, N-1)]   = 0.33f * (x[IX(1, N-1, N-1)]
+                                  + x[IX(0, N-2, N-1)]
+                                  + x[IX(0, N-1, N-2)]);
+    x[IX(N-1, 0, 0)]     = 0.33f * (x[IX(N-2, 0, 0)]
+                                  + x[IX(N-1, 1, 0)]
+                                  + x[IX(N-1, 0, 1)]);
+    x[IX(N-1, N-1, 0)]   = 0.33f * (x[IX(N-2, N-1, 0)]
+                                  + x[IX(N-1, N-2, 0)]
+                                  + x[IX(N-1, N-1, 1)]);
+    x[IX(N-1, 0, N-1)]   = 0.33f * (x[IX(N-2, 0, N-1)]
+                                  + x[IX(N-1, 1, N-1)]
+                                  + x[IX(N-1, 0, N-2)]);
+    x[IX(N-1, N-1, N-1)] = 0.33f * (x[IX(N-2, N-1, N-1)]
+                                  + x[IX(N-1, N-2, N-1)]
+                                  + x[IX(N-1, N-1, N-2)]);
+}
+
+__global__ void project_kernel1(double *velocX, double *velocY, double *velocZ,
                                double *p, double *div, int iter, int N,
                                double N_recip, int k)
 {
@@ -99,6 +127,20 @@ __global__ void project_kernel(double *velocX, double *velocY, double *velocZ,
             -velocZ[IX(i  , j  , k-1)]
         ) * N_recip;
     p[IX(i, j, k)] = 0;
+}
+
+__global__ void project_kernel2(double *velocX, double *velocY, double *velocZ,
+                                double *p, int N, int k)
+{
+    int j = blockIdx.x + 1;
+    int i = threadIdx.x + 1;
+
+    velocX[IX(i, j, k)] -= 0.5f * (  p[IX(i+1, j, k)]
+                                    -p[IX(i-1, j, k)]) * N;
+    velocY[IX(i, j, k)] -= 0.5f * (  p[IX(i, j+1, k)]
+                                    -p[IX(i, j-1, k)]) * N;
+    velocZ[IX(i, j, k)] -= 0.5f * (  p[IX(i, j, k+1)]
+                                    -p[IX(i, j, k-1)]) * N;
 }
 
 __global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip, int N)
