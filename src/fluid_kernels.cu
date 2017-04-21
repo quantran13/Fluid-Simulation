@@ -143,21 +143,19 @@ __global__ void project_kernel2(double *velocX, double *velocY, double *velocZ,
                                     -p[IX(i, j, k-1)]) * N;
 }
 
-__global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip, int N)
+__global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip,
+                                 int N, int m)
 {
-    for (int m = 1; m < N - 1; m++) {
-        for (int j = 1; j < N - 1; j++) {
-            for (int i = 1; i < N - 1; i++) {
-                x[IX(i, j, m)] =
-                    (x0[IX(i, j, m)]
-                        + a*(    x[IX(i+1, j  , m  )]
-                                +x[IX(i-1, j  , m  )]
-                                +x[IX(i  , j+1, m  )]
-                                +x[IX(i  , j-1, m  )]
-                                +x[IX(i  , j  , m+1)]
-                                +x[IX(i  , j  , m-1)]
-                       )) * cRecip;
-            }
-        }
-    }
+    int j = blockIdx.x + 1;
+    int i = threadIdx.x + 1;
+
+    x[IX(i, j, m)] =
+            (x0[IX(i, j, m)]
+             + a*(    x[IX(i+1, j  , m  )]
+                      +x[IX(i-1, j  , m  )]
+                      +x[IX(i  , j+1, m  )]
+                      +x[IX(i  , j-1, m  )]
+                      +x[IX(i  , j  , m+1)]
+                      +x[IX(i  , j  , m-1)]
+            )) * cRecip;
 }
