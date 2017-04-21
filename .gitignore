@@ -3,4 +3,5 @@
 main
 cmake-build-debug/
 build/
+output/
 .idea/
