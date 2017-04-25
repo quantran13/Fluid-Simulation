@@ -5,8 +5,8 @@ INCLUDE_DIR=includes/
 SRC_DIR=src/
 
 CC=nvcc
-CFLAGS=-g -I$(INCLUDE_DIR) -Wno-deprecated-gpu-targets
-LIBFLAGS=-lm -lGL -lglut
+CFLAGS=-g -I$(INCLUDE_DIR) -Wno-deprecated-gpu-targets -Xcompiler -fopenmp
+LIBFLAGS=-lm -lGL -lglut -lgomp
 
 OBJECTS=$(addprefix $(BUILD_DIR),$(notdir $(MAIN_FILE:.cpp=.o)))
 OBJECTS := $(OBJECTS) $(addprefix $(BUILD_DIR),$(notdir $(SOURCES_FILES:.cu=.o)))
