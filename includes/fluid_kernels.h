@@ -14,7 +14,7 @@ __global__ void advect_kernel(double *d, double *d0, double *vecX, double *veloc
 __global__ void set_bnd_kernel1(int b, double *x, int N);
 __global__ void set_bnd_kernel2(double *x, int N);
 __global__ void project_kernel1(double *velocX, double *velocY, double *velocZ,
-                               double *p, double *div, int iter, int N,
+                               double *p, double *div, int N,
                                double N_recip, int k);
 __global__ void project_kernel2(double *velocX, double *velocY, double *velocZ,
                                double *p, int N, int k);

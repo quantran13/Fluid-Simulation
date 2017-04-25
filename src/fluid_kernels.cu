@@ -112,8 +112,7 @@ __global__ void set_bnd_kernel2(double *x, int N)
 }
 
 __global__ void project_kernel1(double *velocX, double *velocY, double *velocZ,
-                               double *p, double *div, int iter, int N,
-                               double N_recip, int k)
+                               double *p, double *div, int N, double N_recip, int k)
 {
     int j = blockIdx.x + 1;
     int i = threadIdx.x + 1;
