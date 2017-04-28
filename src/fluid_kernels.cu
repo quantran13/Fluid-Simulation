@@ -142,13 +142,13 @@ __global__ void project_kernel2(double *velocX, double *velocY, double *velocZ,
                                     -p[IX(i, j, k-1)]) * N;
 }
 
-__global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip,
-                                 int N, int m)
+__global__ void lin_solve_kernel(double *x_next, double *x, double *x0, double a,
+                                 double cRecip, int N, int m)
 {
     int j = blockIdx.x + 1;
     int i = threadIdx.x + 1;
 
-    x[IX(i, j, m)] =
+    x_next[IX(i, j, m)] =
             (x0[IX(i, j, m)]
              + a*(    x[IX(i+1, j  , m  )]
                       +x[IX(i-1, j  , m  )]
@@ -158,3 +158,13 @@ __global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip,
                       +x[IX(i  , j  , m-1)]
             )) * cRecip;
 }
+
+__global__ void set_values_kernel(double *x_next, double *x, int m, int N)
+{
+    int j = blockIdx.x + 1;
+    int i = threadIdx.x + 1;
+
+    x[IX(i, j, m)] = x_next[IX(i, j, m)];
+}
+
+

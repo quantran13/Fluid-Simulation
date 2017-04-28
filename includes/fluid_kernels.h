@@ -18,6 +18,8 @@ __global__ void project_kernel1(double *velocX, double *velocY, double *velocZ,
                                double N_recip, int k);
 __global__ void project_kernel2(double *velocX, double *velocY, double *velocZ,
                                double *p, int N, int k);
-__global__ void lin_solve_kernel(double *x, double *x0, double a, double cRecip,
-                                 int N, int m);
+__global__ void lin_solve_kernel(double *x_next, double *x, double *x0, double a,
+                                 double cRecip, int N, int m);
+__global__ void set_values_kernel(double *x_next, double *x, int m, int N);
+
 #endif //FLUID_SIMULATION_FLUID_KERNELS_H
