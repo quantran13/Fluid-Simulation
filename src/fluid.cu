@@ -1,6 +1,9 @@
 #include <fluid.h>
 
-#define SERIAL 0
+#define SERIAL_SET_BND 0
+#define SERIAL_ADVECT 0
+#define SERIAL_PROJECT 0
+#define SERIAL_LIN_SOLVE 0
 
 FluidCube *FluidCubeCreate(int size, int diffusion, int viscosity, double dt)
 {
@@ -42,118 +45,215 @@ void FluidCubeFree(FluidCube *cube)
     free(cube);
 }
 
+static void set_bnd_serial(int b, double *x, int N)
+{
+    for(int j = 1; j < N - 1; j++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, j, 0  )] = b == 3 ? -x[IX(i, j, 1  )] : x[IX(i, j, 1  )];
+            x[IX(i, j, N-1)] = b == 3 ? -x[IX(i, j, N-2)] : x[IX(i, j, N-2)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
+            x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int j = 1; j < N - 1; j++) {
+            x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
+            x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
+        }
+    }
+
+    x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
+                                    + x[IX(0, 1, 0)]
+                                    + x[IX(0, 0, 1)]);
+    x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
+                                    + x[IX(0, N-2, 0)]
+                                    + x[IX(0, N-1, 1)]);
+    x[IX(0, 0, N-1)]     = 0.33f * (x[IX(1, 0, N-1)]
+                                    + x[IX(0, 1, N-1)]
+                                    + x[IX(0, 0, N)]);
+    x[IX(0, N-1, N-1)]   = 0.33f * (x[IX(1, N-1, N-1)]
+                                    + x[IX(0, N-2, N-1)]
+                                    + x[IX(0, N-1, N-2)]);
+    x[IX(N-1, 0, 0)]     = 0.33f * (x[IX(N-2, 0, 0)]
+                                    + x[IX(N-1, 1, 0)]
+                                    + x[IX(N-1, 0, 1)]);
+    x[IX(N-1, N-1, 0)]   = 0.33f * (x[IX(N-2, N-1, 0)]
+                                    + x[IX(N-1, N-2, 0)]
+                                    + x[IX(N-1, N-1, 1)]);
+    x[IX(N-1, 0, N-1)]   = 0.33f * (x[IX(N-2, 0, N-1)]
+                                    + x[IX(N-1, 1, N-1)]
+                                    + x[IX(N-1, 0, N-2)]);
+    x[IX(N-1, N-1, N-1)] = 0.33f * (x[IX(N-2, N-1, N-1)]
+                                    + x[IX(N-1, N-2, N-1)]
+                                    + x[IX(N-1, N-1, N-2)]);
+}
+
 static void set_bnd(int b, double *x, int N)
 {
-#if SERIAL
-     for(int j = 1; j < N - 1; j++) {
-         for(int i = 1; i < N - 1; i++) {
-             x[IX(i, j, 0  )] = b == 3 ? -x[IX(i, j, 1  )] : x[IX(i, j, 1  )];
-             x[IX(i, j, N-1)] = b == 3 ? -x[IX(i, j, N-2)] : x[IX(i, j, N-2)];
-         }
-     }
-     for(int k = 1; k < N - 1; k++) {
-         for(int i = 1; i < N - 1; i++) {
-             x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
-             x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
-         }
-     }
-     for(int k = 1; k < N - 1; k++) {
-         for(int j = 1; j < N - 1; j++) {
-             x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
-             x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
-         }
-     }
+#if SERIAL_SET_BND
+    for(int j = 1; j < N - 1; j++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, j, 0  )] = b == 3 ? -x[IX(i, j, 1  )] : x[IX(i, j, 1  )];
+            x[IX(i, j, N-1)] = b == 3 ? -x[IX(i, j, N-2)] : x[IX(i, j, N-2)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int i = 1; i < N - 1; i++) {
+            x[IX(i, 0  , k)] = b == 2 ? -x[IX(i, 1  , k)] : x[IX(i, 1  , k)];
+            x[IX(i, N-1, k)] = b == 2 ? -x[IX(i, N-2, k)] : x[IX(i, N-2, k)];
+        }
+    }
+    for(int k = 1; k < N - 1; k++) {
+        for(int j = 1; j < N - 1; j++) {
+            x[IX(0  , j, k)] = b == 1 ? -x[IX(1  , j, k)] : x[IX(1  , j, k)];
+            x[IX(N-1, j, k)] = b == 1 ? -x[IX(N-2, j, k)] : x[IX(N-2, j, k)];
+        }
+    }
 
-     x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
-                                   + x[IX(0, 1, 0)]
-                                   + x[IX(0, 0, 1)]);
-     x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
-                                   + x[IX(0, N-2, 0)]
-                                   + x[IX(0, N-1, 1)]);
-     x[IX(0, 0, N-1)]     = 0.33f * (x[IX(1, 0, N-1)]
-                                   + x[IX(0, 1, N-1)]
-                                   + x[IX(0, 0, N)]);
-     x[IX(0, N-1, N-1)]   = 0.33f * (x[IX(1, N-1, N-1)]
-                                   + x[IX(0, N-2, N-1)]
-                                   + x[IX(0, N-1, N-2)]);
-     x[IX(N-1, 0, 0)]     = 0.33f * (x[IX(N-2, 0, 0)]
-                                   + x[IX(N-1, 1, 0)]
-                                   + x[IX(N-1, 0, 1)]);
-     x[IX(N-1, N-1, 0)]   = 0.33f * (x[IX(N-2, N-1, 0)]
-                                   + x[IX(N-1, N-2, 0)]
-                                   + x[IX(N-1, N-1, 1)]);
-     x[IX(N-1, 0, N-1)]   = 0.33f * (x[IX(N-2, 0, N-1)]
-                                   + x[IX(N-1, 1, N-1)]
-                                   + x[IX(N-1, 0, N-2)]);
-     x[IX(N-1, N-1, N-1)] = 0.33f * (x[IX(N-2, N-1, N-1)]
-                                   + x[IX(N-1, N-2, N-1)]
-                                   + x[IX(N-1, N-1, N-2)]);
+    x[IX(0, 0, 0)]       = 0.33f * (x[IX(1, 0, 0)]
+                                  + x[IX(0, 1, 0)]
+                                  + x[IX(0, 0, 1)]);
+    x[IX(0, N-1, 0)]     = 0.33f * (x[IX(1, N-1, 0)]
+                                  + x[IX(0, N-2, 0)]
+                                  + x[IX(0, N-1, 1)]);
+    x[IX(0, 0, N-1)]     = 0.33f * (x[IX(1, 0, N-1)]
+                                  + x[IX(0, 1, N-1)]
+                                  + x[IX(0, 0, N)]);
+    x[IX(0, N-1, N-1)]   = 0.33f * (x[IX(1, N-1, N-1)]
+                                  + x[IX(0, N-2, N-1)]
+                                  + x[IX(0, N-1, N-2)]);
+    x[IX(N-1, 0, 0)]     = 0.33f * (x[IX(N-2, 0, 0)]
+                                  + x[IX(N-1, 1, 0)]
+                                  + x[IX(N-1, 0, 1)]);
+    x[IX(N-1, N-1, 0)]   = 0.33f * (x[IX(N-2, N-1, 0)]
+                                  + x[IX(N-1, N-2, 0)]
+                                  + x[IX(N-1, N-1, 1)]);
+    x[IX(N-1, 0, N-1)]   = 0.33f * (x[IX(N-2, 0, N-1)]
+                                  + x[IX(N-1, 1, N-1)]
+                                  + x[IX(N-1, 0, N-2)]);
+    x[IX(N-1, N-1, N-1)] = 0.33f * (x[IX(N-2, N-1, N-1)]
+                                  + x[IX(N-1, N-2, N-1)]
+                                  + x[IX(N-1, N-1, N-2)]);
 #endif
 
-#if not SERIAL
+#if not SERIAL_SET_BND
     set_bnd_kernel1 <<< N-2, N-2 >>> (b, x, N);
     set_bnd_kernel2 <<< 1, 1 >>> (x, N);
     cudaDeviceSynchronize();
 #endif
 }
 
-static void lin_solve(int b, double *x, double *x0, double a, double c, int iter,
-                      int N)
+static int isRedCell(int x, int y, int z)
+{
+    return ((x + y + z) % 2 == 0);
+}
+
+static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
 {
     double cRecip = 1.0 / c;
+    int iter = 4;
+
+#if not SERIAL_LIN_SOLVE
+    double *x_next;
+    cudaMallocManaged((void **) &x_next, N * N * N * sizeof(double));
+
     for (int k = 0; k < iter; k++) {
         for (int m = 1; m < N - 1; m++) {
-#if SERIAL
-            for (int j = 1; j < N - 1; j++) {
-                for (int i = 1; i < N - 1; i++) {
-                    x[IX(i, j, m)] =
-                        (x0[IX(i, j, m)]
-                            + a*(    x[IX(i+1, j  , m  )]
-                                    +x[IX(i-1, j  , m  )]
-                                    +x[IX(i  , j+1, m  )]
-                                    +x[IX(i  , j-1, m  )]
-                                    +x[IX(i  , j  , m+1)]
-                                    +x[IX(i  , j  , m-1)]
-                           )) * cRecip;
-//                    x0[IX(i, j, m)] = x[IX(i, j, m)]
-//                                     - a * (  x[IX(i+1, j  , m  )]
-//                                            + x[IX(i-1, j  , m  )]
-//                                            + x[IX(i  , j+1, m  )]
-//                                            + x[IX(i  , j-1, m  )]
-//                                            + x[IX(i  , j  , m+1)]
-//                                            + x[IX(i  , j  , m-1)]
-//                                            - 6 * x[IX(i, j, m)]);
-                }
-            }
-#endif
+            lin_solve_kernel <<< N-2, N-2 >>> (x_next, x, x0, a, cRecip, N, m);
+        }
 
-#if not SERIAL
-            lin_solve_kernel <<< N-2, N-2 >>> (x, x0, a, cRecip, N, m);
-#endif
+        for (int m = 1; m < N - 1; m++) {
+            set_values_kernel <<< N-2, N-2 >>> (x_next, x, m, N);
         }
 
         set_bnd(b, x, N);
-
-//        for (int i = 0; i < N*N*N; i++)
-//            x[i] = x0[i];
     }
 
-#if not SERIAL
-    cudaDeviceSynchronize();
+    cudaFree(x_next);
+#endif
+
+#if SERIAL_LIN_SOLVE
+    int pre_iter = 4;
+    for (int k = 0; k < pre_iter; k++) {
+        for (int m = 1; m < N - 1; m++) {
+            for (int j = 1; j < N - 1; j++) {
+                for (int i = 1; i < N - 1; i++) {
+                    x[IX(i, j, m)] =
+                            (x0[IX(i, j, m)]
+                             + a * (x[IX(i + 1, j, m)]
+                                    + x[IX(i - 1, j, m)]
+                                    + x[IX(i, j + 1, m)]
+                                    + x[IX(i, j - 1, m)]
+                                    + x[IX(i, j, m + 1)]
+                                    + x[IX(i, j, m - 1)]
+                            )) * cRecip;
+                }
+            }
+        }
+
+        set_bnd_serial(b, x, N);
+    }
+
+    iter -= pre_iter;
+
+    for (int k = 0; k < iter; k++) {
+        #pragma omp parallel for
+        for (int m = 1; m < N - 1; m++) {
+            for (int j = 1; j < N - 1; j++) {
+                for (int i = 1; i < N - 1; i++) {
+                    if (isRedCell(i, j, m)) {
+                        x[IX(i, j, m)] =
+                                (x0[IX(i, j, m)]
+                                 + a * (x[IX(i + 1, j, m)]
+                                        + x[IX(i - 1, j, m)]
+                                        + x[IX(i, j + 1, m)]
+                                        + x[IX(i, j - 1, m)]
+                                        + x[IX(i, j, m + 1)]
+                                        + x[IX(i, j, m - 1)]
+                                )) * cRecip;
+                    }
+                }
+            }
+        }
+
+        #pragma omp parallel for
+        for (int m = 1; m < N - 1; m++) {
+            for (int j = 1; j < N - 1; j++) {
+                for (int i = 1; i < N - 1; i++) {
+                    if (!isRedCell(i, j, m)) {
+                        x[IX(i, j, m)] =
+                                (x0[IX(i, j, m)]
+                                 + a * (x[IX(i + 1, j, m)]
+                                        + x[IX(i - 1, j, m)]
+                                        + x[IX(i, j + 1, m)]
+                                        + x[IX(i, j - 1, m)]
+                                        + x[IX(i, j, m + 1)]
+                                        + x[IX(i, j, m - 1)]
+                                )) * cRecip;
+                    }
+                }
+            }
+        }
+
+        set_bnd_serial(b, x, N);
+    }
 #endif
 }
 
-static void diffuse (int b, double *x, double *x0, double diff, double dt,
-                     int iter, int N)
+static void diffuse(int b, double *x, double *x0, double diff, double dt, int N)
 {
     double a = dt * diff * (N - 2) * (N - 2);
-    lin_solve(b, x, x0, a, 1 + 6 * a, iter, N);
+    lin_solve(b, x, x0, a, 1 + 6 * a, N);
 }
 
-static void advect(int b, double *d, double *d0,  double *velocX,
+static void advect(int b, double *d, double *d0, double *velocX,
                    double *velocY, double *velocZ, double dt, int N)
 {
-#if SERIAL
+#if SERIAL_ADVECT
     double i0, i1, j0, j1, k0, k1;
 
     double dtx = dt * (N - 2);
@@ -219,7 +319,7 @@ static void advect(int b, double *d, double *d0,  double *velocX,
     }
 #endif
 
-#if not SERIAL
+#if not SERIAL_ADVECT
     for (int k = 1; k < N - 1; k++) {
         advect_kernel <<< N-2, N-2 >>> (d, d0, velocX, velocY, velocZ, dt, N, k);
     }
@@ -230,42 +330,42 @@ static void advect(int b, double *d, double *d0,  double *velocX,
 }
 
 static void project(double *velocX, double *velocY, double *velocZ,
-                    double *p, double *div, int iter, int N)
+                    double *p, double *div, int N)
 {
     double N_recip = 1 / N;
     for (int k = 1; k < N - 1; k++) {
-#if not SERIAL
-       project_kernel1 <<< N-2, N-2 >>> (velocX, velocY, velocZ, p, div, iter,
-                                         N, N_recip, k);
+#if not SERIAL_PROJECT
+        project_kernel1 <<< N-2, N-2 >>> (velocX, velocY, velocZ, p, div,
+                                          N, N_recip, k);
 #endif
 
-#if SERIAL
-       for (int j = 1; j < N - 1; j++) {
-           for (int i = 1; i < N - 1; i++) {
-               div[IX(i, j, k)] = -0.5f*(
-                       velocX[IX(i+1, j  , k  )]
-                      -velocX[IX(i-1, j  , k  )]
-                      +velocY[IX(i  , j+1, k  )]
-                      -velocY[IX(i  , j-1, k  )]
-                      +velocZ[IX(i  , j  , k+1)]
-                      -velocZ[IX(i  , j  , k-1)]
-                  ) * N_recip;
-               p[IX(i, j, k)] = 0;
-           }
-       }
+#if SERIAL_PROJECT
+        for (int j = 1; j < N - 1; j++) {
+            for (int i = 1; i < N - 1; i++) {
+                div[IX(i, j, k)] = -0.5f*(
+                        velocX[IX(i+1, j  , k  )]
+                       -velocX[IX(i-1, j  , k  )]
+                       +velocY[IX(i  , j+1, k  )]
+                       -velocY[IX(i  , j-1, k  )]
+                       +velocZ[IX(i  , j  , k+1)]
+                       -velocZ[IX(i  , j  , k-1)]
+                   ) * N_recip;
+                p[IX(i, j, k)] = 0;
+            }
+        }
 #endif
     }
 
-#if not SERIAL
+#if not SERIAL_PROJECT
     cudaDeviceSynchronize();
 #endif
 
     set_bnd(0, div, N);
     set_bnd(0, p, N);
-    lin_solve(0, p, div, 1, 6, iter, N);
+    lin_solve(0, p, div, 1, 6, N);
 
     for (int k = 1; k < N - 1; k++) {
-#if SERIAL
+#if SERIAL_PROJECT
         for (int j = 1; j < N - 1; j++) {
             for (int i = 1; i < N - 1; i++) {
                 velocX[IX(i, j, k)] -= 0.5f * (p[IX(i+1, j, k)]
@@ -278,12 +378,12 @@ static void project(double *velocX, double *velocY, double *velocZ,
         }
 #endif
 
-#if not SERIAL
+#if not SERIAL_PROJECT
         project_kernel2 <<< N-2, N-2 >>> (velocX, velocY, velocZ, p, N, k);
 #endif
     }
 
-#if not SERIAL
+#if not SERIAL_PROJECT
     cudaDeviceSynchronize();
 #endif
 
@@ -294,38 +394,38 @@ static void project(double *velocX, double *velocY, double *velocZ,
 
 void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
 {
-    int N          = cube->size;
-    double visc     = cube->visc;
-    double diff     = cube->diff;
-    double dt       = cube->dt;
-    double *Vx      = cube->Vx;
-    double *Vy      = cube->Vy;
-    double *Vz      = cube->Vz;
-    double *Vx0     = cube->Vx0;
-    double *Vy0     = cube->Vy0;
-    double *Vz0     = cube->Vz0;
-    double *s       = cube->s;
+    int N = cube->size;
+    double visc = cube->visc;
+    double diff = cube->diff;
+    double dt = cube->dt;
+    double *Vx = cube->Vx;
+    double *Vy = cube->Vy;
+    double *Vz = cube->Vz;
+    double *Vx0 = cube->Vx0;
+    double *Vy0 = cube->Vy0;
+    double *Vz0 = cube->Vz0;
+    double *s = cube->s;
     double *density = cube->density;
 
     double start = 0, end = 0;
 
     start = get_time();
-    diffuse(1, Vx0, Vx, visc, dt, 4, N);
+    diffuse(1, Vx0, Vx, visc, dt, N);
     end = get_time();
     perf_struct->timeDiffuse += end - start;
 
     start = get_time();
-    diffuse(2, Vy0, Vy, visc, dt, 4, N);
+    diffuse(2, Vy0, Vy, visc, dt, N);
     end = get_time();
     perf_struct->timeDiffuse += end - start;
 
     start = get_time();
-    diffuse(3, Vz0, Vz, visc, dt, 4, N);
+    diffuse(3, Vz0, Vz, visc, dt, N);
     end = get_time();
     perf_struct->timeDiffuse += end - start;
 
     start = get_time();
-    project(Vx0, Vy0, Vz0, Vx, Vy, 4, N);
+    project(Vx0, Vy0, Vz0, Vx, Vy, N);
     end = get_time();
     perf_struct->timeProject += end - start;
 
@@ -345,12 +445,12 @@ void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
     perf_struct->timeAdvect += end - start;
 
     start = get_time();
-    project(Vx, Vy, Vz, Vx0, Vy0, 4, N);
+    project(Vx, Vy, Vz, Vx0, Vy0, N);
     end = get_time();
     perf_struct->timeProject += end - start;
 
     start = get_time();
-    diffuse(0, s, density, diff, dt, 4, N);
+    diffuse(0, s, density, diff, dt, N);
     end = get_time();
     perf_struct->timeDiffuse += end - start;
 
