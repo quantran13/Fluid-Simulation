@@ -148,15 +148,14 @@ __global__ void lin_solve_kernel(double *x_next, double *x, double *x0, double a
     int j = blockIdx.x + 1;
     int i = threadIdx.x + 1;
 
-    x_next[IX(i, j, m)] =
-            (x0[IX(i, j, m)]
-             + a*(    x[IX(i+1, j  , m  )]
-                      +x[IX(i-1, j  , m  )]
-                      +x[IX(i  , j+1, m  )]
-                      +x[IX(i  , j-1, m  )]
-                      +x[IX(i  , j  , m+1)]
-                      +x[IX(i  , j  , m-1)]
-            )) * cRecip;
+    x_next[IX(i, j, m)] = (x0[IX(i, j, m)]
+                           + a * (x[IX(i+1, j  , m  )]
+                                 + x[IX(i-1, j  , m  )]
+                                 + x[IX(i  , j+1, m  )]
+                                 + x[IX(i  , j-1, m  )]
+                                 + x[IX(i  , j  , m+1)]
+                                 + x[IX(i  , j  , m-1)]))
+                          * cRecip;
 }
 
 __global__ void set_values_kernel(double *x_next, double *x, int m, int N)

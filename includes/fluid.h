@@ -4,7 +4,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <fluid_kernels.h>
-#include <omp.h>
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>

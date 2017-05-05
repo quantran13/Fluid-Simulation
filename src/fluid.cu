@@ -147,11 +147,6 @@ static void set_bnd(int b, double *x, int N)
 #endif
 }
 
-static int isRedCell(int x, int y, int z)
-{
-    return ((x + y + z) % 2 == 0);
-}
-
 static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
 {
     double cRecip = 1.0 / c;
@@ -177,8 +172,7 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
 #endif
 
 #if SERIAL_LIN_SOLVE
-    int pre_iter = 4;
-    for (int k = 0; k < pre_iter; k++) {
+    for (int k = 0; k < iter; k++) {
         for (int m = 1; m < N - 1; m++) {
             for (int j = 1; j < N - 1; j++) {
                 for (int i = 1; i < N - 1; i++) {
@@ -196,50 +190,7 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
         }
 
         set_bnd_serial(b, x, N);
-    }
-
-    iter -= pre_iter;
-
-    for (int k = 0; k < iter; k++) {
-        #pragma omp parallel for
-        for (int m = 1; m < N - 1; m++) {
-            for (int j = 1; j < N - 1; j++) {
-                for (int i = 1; i < N - 1; i++) {
-                    if (isRedCell(i, j, m)) {
-                        x[IX(i, j, m)] =
-                                (x0[IX(i, j, m)]
-                                 + a * (x[IX(i + 1, j, m)]
-                                        + x[IX(i - 1, j, m)]
-                                        + x[IX(i, j + 1, m)]
-                                        + x[IX(i, j - 1, m)]
-                                        + x[IX(i, j, m + 1)]
-                                        + x[IX(i, j, m - 1)]
-                                )) * cRecip;
-                    }
-                }
-            }
-        }
-
-        #pragma omp parallel for
-        for (int m = 1; m < N - 1; m++) {
-            for (int j = 1; j < N - 1; j++) {
-                for (int i = 1; i < N - 1; i++) {
-                    if (!isRedCell(i, j, m)) {
-                        x[IX(i, j, m)] =
-                                (x0[IX(i, j, m)]
-                                 + a * (x[IX(i + 1, j, m)]
-                                        + x[IX(i - 1, j, m)]
-                                        + x[IX(i, j + 1, m)]
-                                        + x[IX(i, j - 1, m)]
-                                        + x[IX(i, j, m + 1)]
-                                        + x[IX(i, j, m - 1)]
-                                )) * cRecip;
-                    }
-                }
-            }
-        }
-
-        set_bnd_serial(b, x, N);
+        //set_bnd(b, x, N);
     }
 #endif
 }
