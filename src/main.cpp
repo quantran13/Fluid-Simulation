@@ -5,6 +5,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 typedef struct {
     perf_t *perf;
@@ -60,7 +61,7 @@ void managernode(int argc, char **argv){
     MPI_Status status;
     int i;
 
-    if(argc != 9)
+    if(argc > 9)
       print_usage(argv[0]);
 
     // Get command line arguments
@@ -68,6 +69,7 @@ void managernode(int argc, char **argv){
     char file_name[128];
     get_command_line_args(argc, argv, &steps, &write_result, &display_graphic,
                           file_name);
+    printf("file_name = %s", file_name);
     // Init graphic
     int width = 1000;
     int height = 1000;
@@ -79,23 +81,29 @@ void managernode(int argc, char **argv){
     glutCreateWindow("Fluid Simulation");
     glutDisplayFunc(init_render);
 
+
+
+    FluidCube **cubes = get_input_parallel(file_name, 8);
     // Init the cube
-    FluidCube** cubes;
     if (cubes == NULL) {
         fprintf(stderr, "Cannot open input file %s!\n", file_name);
         print_usage(argv[0]);
+        exit(1);
     }
 
     // Delete the output file's content
     char *result_file_name = get_result_file_name(file_name);
     FILE *result_file = NULL;
     if (write_result) {
+        printf("write_result is good\n");
         result_file = fopen(result_file_name, "w");
         if (result_file == NULL) {
             fprintf(stderr, "WARNING: cannot open result file '%s' to write!\n\n",
                     result_file_name);
         }
     }
+
+
 
     // Set up the performance info struct
     perf_t perf_struct;
@@ -108,9 +116,15 @@ void managernode(int argc, char **argv){
     perf_struct.totalAdvect = 0;
     perf_struct.totalProject = 0;
 
+    int slice = 20;
+    for(int i = 0; i < 8; i++){
+      print_result(cubes[i], result_file, cubes[i]->size < print_full_threshold);
+      //draw_cube(cubes[i], &perf_struct, slice);
+    }
+
     // Start the simulation
     double start = get_time();
-    int slice = 20;
+    //int slice = 4;
 
     // MPI division of work
     info_t *info;
@@ -128,37 +142,54 @@ void managernode(int argc, char **argv){
     //if (display_graphic)
         //draw_cube(cube, &perf_struct, slice);
     //print_result(cube, result_file, cube->size < print_full_threshold);
-    //print_result(cube, result_file, cube->size < print_full_threshold);
 
     for (int step = 0; step < steps; step++) {
-        FluidCubeStep(myCube1, &perf_struct);
-        //print_result(myCube1, result_file, myCube1->size < print_full_threshold);
-        FluidCubeStep(myCube2, &perf_struct);
+      for (int sub = 0; sub < 8; sub++) {
+        FluidCubeStep(cubes[sub], &perf_struct);
+
+        //draw_cube(cubes[sub], &perf_struct, slice);
+      }
+
+
+        // FluidCubeStep(myCube1, &perf_struct);
+        // //print_result(myCube1, result_file, myCube1->size < print_full_threshold);
+        // FluidCubeStep(myCube2, &perf_struct);
         //print_result(myCube2, result_file, myCube2->size < print_full_threshold);
         //if (display_graphic)
             //draw_cube(cube, &perf_struct, slice);
+        FluidCube* intermediateCube = combineCubes(cubes);
+        //draw_cube(intermediateCube, &perf_struct, slice);
         printf("---------- done step ----------\n");
     }
     for(i = 1; i<nnodes; i++){
       MPI_Recv(info, 8, MPI_INT, i, DATA_MSG, MPI_COMM_WORLD, &status);
     }
-
+    for(int i = 0; i < 8; i++){
+      print_result(cubes[i], result_file, cubes[i]->size < print_full_threshold);
+      //draw_cube(cubes[i], &perf_struct, slice);
+    }
     FluidCube* finalCube = combineCubes(cubes);
-    printf("---------- finished  ----------\n\n");
+    printf("---------- finished  ----------\n");
     double end = get_time();
     double elapsed = end - start;
 
-    print_result(finalCube, result_file, myCube2->size < print_full_threshold);
-    if (display_graphic)
-        draw_cube(finalCube, &perf_struct, slice);
+    printf("final Cube location: %x\n", finalCube);
+    printf("final Cube size: %d\n", finalCube->size);
+    printf("result file name: %s\n", result_file_name);
+    printf("result file: %s\n", result_file);
+    //print_result(finalCube, result_file, finalCube->size < print_full_threshold);
+    //if (display_graphic)
+    printf("-------- Drawing Cube ---------\n");
+    draw_cube(finalCube, &perf_struct, slice);
+
     // End the simulation and print the profiling result
-    FluidCubeFree(finalCube);
-    FluidCubeFree(finalCube);
-    FluidCubeFree(finalCube);
+    //FluidCubeFree(finalCube);
 
     free(result_file_name);
-    if (result_file != NULL)
-        fclose(result_file);
+    if (result_file != NULL){
+      printf("Actually wrote something\n");
+      fclose(result_file);
+    }
 
     printf("Elapsed time: %fs.\n", elapsed);
     printf("Average - diffuse: %f\n", perf_struct.timeDiffuse / perf_struct.totalDiffuse);
@@ -166,6 +197,7 @@ void managernode(int argc, char **argv){
     printf("Average - project: %f\n", perf_struct.timeProject / perf_struct.totalProject);
     printf("Average - drawing: %f\n", perf_struct.timeDrawing / (steps + 1));
     printf("Average - draw square: %f\n", perf_struct.timeDrawSquare / (steps + 1));
+    sleep(1000);
 
     return;
 }
@@ -188,11 +220,50 @@ void workernode(){
   info->cubes[me*2+1] = mycube2;
   MPI_Send(info, 8, MPI_INT, 0, NEWDATA_MSG, MPI_COMM_WORLD);
 }
+
 FluidCube* combineCubes(FluidCube** cubes){
-
-
+  FluidCube* finalCube = FluidCubeCreate((cubes[0]->size-1)*2,
+                                            cubes[0]->diff, cubes[0]->visc, 1);
+  n = (cubes[0]->size)*2;
+  printf("n = %d\n",n);
+  for (int x = 0; x < n; x++) {
+      for (int y = 0; y < n; y++) {
+          for (int z = 0; z < n; z++) {
+            if((x != n/2) && (x != n/2-1) && (y != n/2) && (y != n/2-1) && (z != n/2) && (z != n/2-1)){
+              //printf("%d, %d, %d\n", x, y, z);
+              int xindex = x;
+              int yindex = y;
+              int zindex = z;
+              if(x>n/2){
+                xindex = x-2;
+              }
+              if(y>n/2){
+                yindex = y-2;
+              }
+              if(z>n/2){
+                zindex = z-2;
+              }
+              int subCube;
+              subCube = 0;
+              if(x>n/2){
+                subCube += 4;
+              }
+              if(y>n/2){
+                subCube += 2;
+              }
+              if(z>n/2){
+                subCube += 1;
+              }
+              int N = cubes[0]->size;
+              FluidCubeAddDensity(finalCube, xindex, yindex, zindex, cubes[subCube]->density[IX(x%N, y%N, z%N)]);
+              FluidCubeAddVelocity(finalCube, xindex, yindex, zindex, cubes[subCube]->Vx[IX(x%N, y%N, z%N)],
+                  cubes[subCube]->Vy[IX(x%N, y%N, z%N)], cubes[subCube]->Vz[IX(x%N, y%N, z%N)]);
+            }
+          }
+      }
+  }
+  return finalCube;
 }
-
 
 void init(int argc, char **argv){
   MPI_Init(&argc, &argv);
@@ -233,7 +304,7 @@ void print_usage(char *program_name)
 }
 FluidCube** get_input_parallel(char *file_name, int p)
 {
-    FluidCube **cubes;
+    FluidCube **cubes = (FluidCube**) malloc(8*sizeof(FluidCube*));
     FILE *fin = fopen(file_name, "r");
     char n_str[10], diffusion_str[10], viscosity_str[10];
     int n, diffusion, viscosity;
@@ -248,8 +319,8 @@ FluidCube** get_input_parallel(char *file_name, int p)
     diffusion = atoi(diffusion_str);
     viscosity = atoi(viscosity_str);
     for(int i=0; i<p; i++){
-      cubes[i] = FluidCubeCreate(n/2, diffusion, viscosity, 1);
-
+      cubes[i] = FluidCubeCreate((n/2)+1, diffusion, viscosity, 1);
+      printf("subcube address = %x\n", cubes[i]);
     }
     char line[5];
     for (int x = 0; x < n; x++) {
@@ -258,18 +329,19 @@ FluidCube** get_input_parallel(char *file_name, int p)
                 fgets(line, 4, fin);
                 char c = line[0];
                 int subCube;
-                if(x>n/2){
+                subCube = 0;
+                if(x>(n/2)-1){
                   subCube += 4;
                 }
-                if(y>n/2){
+                if(y>(n/2)-1){
                   subCube += 2;
                 }
-                if(z>n/2){
+                if(z>(n/2)-1){
                   subCube += 1;
                 }
                 if (c == '1') {
-                    FluidCubeAddDensity(cubes[subCube], x, y, z, initial_density);
-                    FluidCubeAddVelocity(cubes[subCube], x, y, z, initial_velocity,
+                    FluidCubeAddDensity(cubes[subCube], (x%(n/2)+!!x), (y%(n/2)+!!y), (z%(n/2)+!!z), initial_density);
+                    FluidCubeAddVelocity(cubes[subCube], (x%(n/2)+!!x), (y%(n/2)+!!y), (z%(n/2)+!!z), initial_velocity,
                                          initial_velocity, initial_velocity);
                 }
             }
@@ -317,6 +389,7 @@ FluidCube* get_input_from_file(char *file_name)
     fclose(fin);
 
     return cube;
+
 }
 
 char *get_result_file_name(char *input_file)

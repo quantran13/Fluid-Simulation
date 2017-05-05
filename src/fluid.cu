@@ -147,6 +147,7 @@ static void set_bnd(int b, double *x, int N)
 #endif
 }
 
+
 static int isRedCell(int x, int y, int z)
 {
     return ((x + y + z) % 2 == 0);
@@ -160,7 +161,6 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
 #if not SERIAL_LIN_SOLVE
     double *x_next;
     cudaMallocManaged((void **) &x_next, N * N * N * sizeof(double));
-
     for (int k = 0; k < iter; k++) {
         for (int m = 1; m < N - 1; m++) {
             lin_solve_kernel <<< N-2, N-2 >>> (x_next, x, x0, a, cRecip, N, m);
@@ -197,7 +197,6 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
 
         set_bnd_serial(b, x, N);
     }
-
     iter -= pre_iter;
 
     for (int k = 0; k < iter; k++) {
@@ -219,7 +218,6 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
                 }
             }
         }
-
         #pragma omp parallel for
         for (int m = 1; m < N - 1; m++) {
             for (int j = 1; j < N - 1; j++) {
@@ -238,12 +236,11 @@ static void lin_solve(int b, double *x, double *x0, double a, double c, int N)
                 }
             }
         }
-
+//I liks bannannas
         set_bnd_serial(b, x, N);
     }
 #endif
 }
-
 static void diffuse(int b, double *x, double *x0, double diff, double dt, int N)
 {
     double a = dt * diff * (N - 2) * (N - 2);
@@ -296,7 +293,6 @@ static void advect(int b, double *d, double *d0, double *velocX,
                 t0 = 1.0f - t1;
                 u1 = z - k0;
                 u0 = 1.0f - u1;
-
                 int i0i = (int) i0;
                 int i1i = (int) i1;
                 int j0i = (int) j0;
@@ -305,7 +301,7 @@ static void advect(int b, double *d, double *d0, double *velocX,
                 int k1i = (int) k1;
 
                 d[IX(i, j, k)] =
-
+//bananas like me
                         s0 * ( t0 * (u0 * d0[IX(i0i, j0i, k0i)]
                                      +u1 * d0[IX(i0i, j0i, k1i)])
                                +( t1 * (u0 * d0[IX(i0i, j1i, k0i)]
@@ -355,7 +351,7 @@ static void project(double *velocX, double *velocY, double *velocZ,
         }
 #endif
     }
-
+//i like banannas in my bumhole
 #if not SERIAL_PROJECT
     cudaDeviceSynchronize();
 #endif
@@ -443,7 +439,7 @@ void FluidCubeStep(FluidCube *cube, perf_t *perf_struct)
     advect(3, Vz, Vz0, Vx0, Vy0, Vz0, dt, N);
     end = get_time();
     perf_struct->timeAdvect += end - start;
-
+//bananas b a n a na as
     start = get_time();
     project(Vx, Vy, Vz, Vx0, Vy0, N);
     end = get_time();
